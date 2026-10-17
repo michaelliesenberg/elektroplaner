@@ -4,7 +4,7 @@ Statische Website (GitHub Pages) mit Anmeldung und Datenbank bei Supabase (EU, F
 Ziel-Adresse: **https://planer.liesenberg.biz**
 
 ## Was drin ist
-- `index.html`, `styles.css`, `planner.js` (Planungslogik, gleich wie die Claude-Version), `app.js` (Anmeldung, Häuser, Beteiligte, Wartungsbuch)
+- `index.html` (Startseite: App und Hardware), `planer.html`, `styles.css`, `planner.js` (Planungslogik, gleich wie die Claude-Version), `app.js` (Anmeldung, Häuser, Beteiligte, Wartungsbuch)
 - `config.js` – Supabase-Adresse und öffentlicher Schlüssel (leer = Demo-Modus nur im Browser)
 - `vendor/supabase.js` – supabase-js 2.117.2 (MIT), lokal ausgeliefert, damit kein fremdes CDN geladen wird
 - `supabase/schema.sql` – Tabellen und Zugriffsregeln
