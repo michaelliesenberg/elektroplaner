@@ -40,6 +40,32 @@ const RT={
 };
 const DIMMROOMS=new Set(['wohnen','essen','schlafen','kind','arbeit']);
 const SYS={luxor:'LUXORliving',knx:'KNX',shelly:'Shelly'};
+const isKonv=p=>p.mode==='konv';
+const isBus=p=>!isKonv(p)&&p.system!=='shelly';
+// Konventionell: was später smart nachgerüstet wird (pro Raum), Grenze ist die Anzahl der Anschlüsse
+const RETRO=[
+ {k:'plug',of:['steckdose'],l:'Zwischenstecker',art:'Shelly Plug S Gen3',hint:'in die Steckdose stecken, kein Elektriker nötig',ref:'steckdose_schalt'},
+ {k:'pm1',of:['licht'],l:'Shelly hinter dem Lichtschalter',art:'Shelly 1PM Gen3',hint:'Unterputz, Elektriker, Neutralleiter in der Dose',ref:'licht',el:1},
+ {k:'dim',of:['dimm'],l:'Shelly-Dimmer',art:'Shelly Dimmer Gen3',hint:'Unterputz, Elektriker, dimmbare LED',ref:'dimm',el:1},
+ {k:'pm2',of:['rollladen'],l:'Shelly für Rollladen',art:'Shelly 2PM Gen3',hint:'Unterputz, Elektriker',ref:'rollladen',el:1},
+ {k:'s1',of:['tor'],l:'Shelly am Tor',art:'Shelly 1 Gen3',hint:'potentialfrei im Torantrieb',ref:'tor',el:1}
+];
+const PRESETS={
+ none:{l:'Nichts smart',d:'Normale Installation. Smart nachrüsten geht später jederzeit.'},
+ plug:{l:'Nur Zwischenstecker',d:'In jedem Wohnraum ein bis zwei Zwischenstecker für Lampen und Geräte. Ohne Elektriker.'},
+ full:{l:'Zwischenstecker und Shelly hinter den Schaltern',d:'Licht, Rollläden und Tor werden smart, der normale Schalter bleibt. Einbau durch den Elektriker.'}
+};
+const LIVING=new Set(['wohnen','essen','schlafen','kind','arbeit','kueche']);
+const retroMax=(r,x)=>x.of.reduce((s,k)=>s+n(r,k),0);
+const retro=(r,k)=>{const x=RETRO.find(a=>a.k===k);return Math.min(retroMax(r,x),Math.max(0,+((r.retro||{})[k]||0)))};
+function presetRoom(key,r){
+  const o={};
+  if(key&&key!=='none'&&n(r,'steckdose')) o.plug=Math.min(n(r,'steckdose'),LIVING.has(r.type)?(r.type==='wohnen'?2:1):0);
+  if(key==='full'){o.pm1=n(r,'licht');o.dim=n(r,'dimm');o.pm2=n(r,'rollladen');o.s1=n(r,'tor')}
+  r.retro=o;
+}
+function applyPreset(p,key){p.preset=key;p.floors.forEach(f=>f.rooms.forEach(r=>presetRoom(key,r)))}
+
 const AWN={1:'1 · Mindest',2:'2 · Standard',3:'3 · Komfort'};
 
 /* ---------- Hilfen ---------- */
@@ -100,7 +126,7 @@ function circuits(p){
   if(outS) add({name:'Außensteckdosen / Tor',where:'Außen',prot:B16,cable:'NYM-J 3×2,5 (außen: NYY-J)',load:1,type:'socket'});
   const outL=total(p,'licht',isOut)+total(p,'dimm',isOut)+total(p,'rollladen',isOut);
   if(outL) add({name:'Außenbeleuchtung',where:'Außen',prot:B10,cable:'NYM-J 3×1,5 (außen: NYY-J)',load:.3,type:'light'});
-  const bus=p.system!=='shelly';
+  const bus=isBus(p);
   if(bus) add({name:`Steuerung ${SYS[p.system]} (Spannungsversorgung, Gateway)`,where:'Verteiler',prot:B10,cable:'im Verteiler',load:.1,type:'ctl'});
   if(bus&&total(p,'heizung')) add({name:'Heizungsaktor (Stellantriebe)',where:'Verteiler',prot:B10,cable:'NYM-J 3×1,5',load:.1,type:'ctl'});
   if(total(p,'netzwerk')+total(p,'tv')) add({name:'Netzwerk / Medienverteiler',where:'Technik',prot:B16,cable:'NYM-J 3×2,5',load:.3,type:'socket'});
@@ -120,6 +146,10 @@ function channels(p){
 function actuators(p){
   const c=channels(p),ce=Math.ceil,list=[];
   const A=(name,qty,ch,te,note)=>{if(qty>0) list.push({name,qty,ch,te,note})};
+  if(isKonv(p)){
+    RETRO.forEach(x=>{const q=allRooms(p).reduce((s,r)=>s+retro(r,x.k),0);A(x.art,q,null,0,x.hint)});
+    return {list,c};
+  }
   if(p.system==='luxor'){
     A('LUXORliving S4 Schaltaktor 4-fach',ce(c.switch/4),c.switch,4);
     A('LUXORliving D2 Dimmaktor 2-fach',ce(c.dim/2),c.dim,4);
@@ -152,7 +182,7 @@ function actuators(p){
 function shopping(p){
   const G=[],grp=(name)=>{const g={name,items:[]};G.push(g);return g};
   const it=(g,name,qty,unit,note)=>{if(qty>0) g.items.push({name,qty,unit:unit||'Stk',note:note||''})};
-  const {list:cs}=circuits(p), act=actuators(p), bus=p.system!=='shelly';
+  const {list:cs}=circuits(p), act=actuators(p), bus=isBus(p), konv=isKonv(p);
   const v=grp('Verteiler und Schutz');
   const single=cs.filter(c=>c.poles===1).length, three=cs.filter(c=>c.poles===3&&c.type!=='ded'||c.name.startsWith('Herd')).length, wb=cs.filter(c=>c.name.startsWith('Wallbox')).length;
   it(v,'FI/LS-Schalter 1+N kompakt (1 TE), 30 mA Typ A',single,'Stk','B10 für Licht/Rollläden, B16 für Steckdosen');
@@ -165,63 +195,111 @@ function shopping(p){
   const rows=Math.ceil(te*1.2/12);
   it(v,`Verteilerfeld mind. ${rows} Reihen à 12 TE`,1,'Stk',`ca. ${te} TE belegt + 20 % Reserve (TE nach Datenblatt prüfen)`);
   it(v,'Phasenschiene, N- und PE-Klemmen, Beschriftung',1,'Satz');
-  const a=grp(`Steuerung (${SYS[p.system]})`);
+  const a=grp(konv?'Smart nachrüsten (Shelly)':`Steuerung (${SYS[p.system]})`);
   act.list.forEach(x=>it(a,x.name,x.qty,'Stk',x.ch!=null?`${x.ch} Kanäle${x.note?' · '+x.note:''}`:(x.note||'')));
   const c=act.c;
   if(bus){
     it(a,p.system==='luxor'?'Bus-Taster für LUXORliving (z. B. Theben iON)':'KNX Tastsensor',c.taster,'Stk');
     it(a,p.system==='luxor'?'Präsenzmelder für LUXORliving (Theben)':'KNX Präsenzmelder',c.praes,'Stk');
+  }else if(konv){
+    it(a,'Präsenzmelder 230 V',c.praes,'Stk');
   }else{
     it(a,'Taster UP (konventionell, an Shelly-Eingang)',c.taster,'Stk');
     it(a,'Präsenzmelder 230 V oder Shelly BLU Motion',c.praes,'Stk');
   }
-  it(a,'Raspberry Pi mit Liesenberg Home Hub',1,'Stk','falls noch nicht vorhanden');
+  if(!konv||a.items.length) it(a,'Raspberry Pi mit Liesenberg Home Hub',1,'Stk','falls noch nicht vorhanden');
   const s=grp('Schalterprogramm und Dosen');
   const inS=total(p,'steckdose',r=>!isOut(r))+total(p,'steckdose_schalt',r=>!isOut(r)), outSock=total(p,'steckdose',isOut)+total(p,'steckdose_schalt',isOut);
   it(s,'Schuko-Steckdose Einsatz + Abdeckung',inS);
   it(s,'Schuko-Steckdose AP IP44 (außen)',outSock);
   it(s,'Datendose 2× RJ45 Cat.6A',total(p,'netzwerk'));
   it(s,'Antennendose TV/SAT (Enddose)',total(p,'tv'));
-  if(!bus) it(s,'Taster-Einsatz + Wippe',c.taster);
+  if(!bus) it(s,konv?'Schalter-Einsatz (Aus/Wechsel/Kreuz) + Wippe':'Taster-Einsatz + Wippe',c.taster);
   const frames=inS+total(p,'netzwerk')+total(p,'tv')+c.taster;
   it(s,'Rahmen (1-fach gezählt, Mehrfachrahmen nach Montageplan)',frames);
   it(s,'Geräte-Verbindungsdose tief (Ø 68 mm)',inS+total(p,'netzwerk')+total(p,'tv')+c.taster,'Stk','tief, Platz für Bus/Shelly');
   it(s,'Deckendose / Leuchtenauslass',total(p,'licht')+total(p,'dimm')+c.praes);
   it(s,'Leuchtmittel / Leuchten',total(p,'licht')+total(p,'dimm'),'Stk','Auswahl durch Bauherrschaft; Dimmlicht: dimmbare LED');
-  // Leitungen (grobe Schätzung)
-  const L=[];
-  p.floors.forEach((f,fi)=>f.rooms.forEach(r=>L.push({r,len:8+fi*4})));
-  let m15=0,m25=0,m515=0,m525=0,mbus=0,mcat=0,mkoax=0;
-  L.forEach(({r,len})=>{
-    m15+=(n(r,'licht')+n(r,'dimm'))*len; if(!bus) m15+=n(r,'taster')*4;
-    m515+=n(r,'rollladen')*len;
-    m25+=(n(r,'steckdose')+n(r,'steckdose_schalt'))*5+(n(r,'backofen')+n(r,'gsp')+n(r,'wm')+n(r,'trockner')+n(r,'tor'))*(len+4);
-    m525+=n(r,'herd')*(len+4);
-    if(bus) mbus+=(n(r,'taster')+n(r,'praesenz'))*10;
-    mcat+=n(r,'netzwerk')*2*(len+6); mkoax+=n(r,'tv')*(len+8);
-  });
-  m25+=cs.filter(c=>c.type==='socket').length*12;
-  const ring=(m,sz)=>Math.ceil(m*1.15/sz);
-  const l=grp('Leitungen (grobe Schätzung + 15 %)');
-  it(l,'NYM-J 3×1,5 mm²',ring(m15,50),'Ring 50 m',`ca. ${Math.round(m15*1.15)} m`);
-  it(l,'NYM-J 5×1,5 mm² (Rollläden)',ring(m515,50),'Ring 50 m',`ca. ${Math.round(m515*1.15)} m`);
-  it(l,'NYM-J 3×2,5 mm²',ring(m25,50),'Ring 50 m',`ca. ${Math.round(m25*1.15)} m`);
-  it(l,'NYM-J 5×2,5 mm² (Herd)',m525?Math.ceil(m525*1.15):0,'m');
-  if(total(p,'wallbox')) it(l,'NYM-J 5×6 mm² (Wallbox, Querschnitt nach Länge)',total(p,'wallbox')*20,'m','Annahme 20 m');
-  it(l,'Busleitung J-Y(St)Y 2×2×0,8',ring(mbus,100),'Ring 100 m',`ca. ${Math.round(mbus*1.15)} m`);
-  it(l,'Datenkabel Cat.7 (2 Leitungen je Dose)',ring(mcat,100),'Ring 100 m',`ca. ${Math.round(mcat*1.15)} m`);
-  it(l,'Koaxkabel 120 dB',ring(mkoax,100),'Ring 100 m',`ca. ${Math.round(mkoax*1.15)} m`);
-  it(l,'Leerrohr M20 / M25 für Medien',total(p,'netzwerk')+total(p,'tv')?Math.ceil((mcat/2+mkoax)*1.1):0,'m');
+  const K=cableRuns(p),l=grp(K.allMeasured?'Leitungen (aus dem Grundriss + 15 %)':K.anyMeasured?'Leitungen (teils aus dem Grundriss, teils geschätzt, + 15 %)':'Leitungen (grobe Schätzung + 15 %)');
+  CABLES.forEach(cb=>{const m=K.tot[cb.k]||0;if(!m) return;const mm=Math.ceil(m*1.15);
+    it(l,cb.l,cb.ring?Math.ceil(mm/cb.ring):mm,cb.ring?`Ring ${cb.ring} m`:'m',`ca. ${mm} m`)});
+  if(total(p,'netzwerk')+total(p,'tv')) it(l,'Leerrohr M20 / M25 für Medien',Math.ceil(((K.tot.cat||0)/2+(K.tot.koax||0))*1.1),'m');
   return G.filter(g=>g.items.length);
 }
 
+/* ---------- Leitungslängen ---------- */
+const CABLES=[
+ {k:'l15',l:'NYM-J 3×1,5 mm² (Licht, Schalter)',ring:50},
+ {k:'l515',l:'NYM-J 5×1,5 mm² (Rollläden)',ring:50},
+ {k:'l25',l:'NYM-J 3×2,5 mm² (Steckdosen, Geräte)',ring:50},
+ {k:'l525',l:'NYM-J 5×2,5 mm² (Herd)'},
+ {k:'l56',l:'NYM-J 5×6 mm² (Wallbox, Querschnitt nach Länge)'},
+ {k:'bus',l:'Busleitung J-Y(St)Y 2×2×0,8',ring:100},
+ {k:'cat',l:'Datenkabel Cat.7 (2 je Netzwerkdose)',ring:100},
+ {k:'koax',l:'Koaxkabel 120 dB',ring:100}
+];
+const DEDC={herd:'l525',backofen:'l25',gsp:'l25',wm:'l25',trockner:'l25',tor:'l25',wallbox:'l56'};
+const FLOOR_H=3, V_BOARD=1.5, V_DROP=2.0, V_LIGHT=0.3;
+function mainFloor(p){const i=p.floors.findIndex(f=>f.plan&&f.plan.board&&f.plan.main);return i>=0?i:Math.max(0,p.floors.findIndex(f=>f.plan&&f.plan.board))}
+function geoOK(f,r){return !!(f.plan&&f.plan.scale&&r.rect&&Array.isArray(r.items))}
+// Nächster-Nachbar-Kette ab Punkt s: Länge horizontal in m
+function chain(s,pts,d){let cur=s,left=pts.slice(),len=0,first=null;while(left.length){let bi=0,bd=Infinity;left.forEach((q,i)=>{const x=d(cur,q);if(x<bd){bd=x;bi=i}});len+=bd;cur=left.splice(bi,1)[0];if(!first)first=bd}return {len,first:first||0}}
+function cableRuns(p){
+  const tot={},rooms=[],bus=isBus(p),konv=isKonv(p),mf=mainFloor(p);
+  let anyM=false,allM=true;
+  const add=(o,k,m)=>{if(m>0){o[k]=(o[k]||0)+m;tot[k]=(tot[k]||0)+m}};
+  p.floors.forEach((f,fi)=>f.rooms.forEach(r=>{
+    const o={},geo=geoOK(f,r);
+    if(geo){
+      anyM=true;
+      const sc=f.plan.scale,B=f.plan.board||{x:f.plan.w/2,y:f.plan.h/2},off=V_BOARD+Math.abs(fi-mf)*FLOOR_H;
+      const d=(a,b)=>(Math.abs(a.x-b.x)+Math.abs(a.y-b.y))/sc;
+      const of=k=>r.items.filter(i=>i.k===k);
+      const socks=of('steckdose').concat(of('steckdose_schalt'));
+      if(socks.length){const c=chain(B,socks,d);add(o,'l25',off+c.len+V_DROP+(socks.length-1)*0.6)}
+      const lights=of('licht').concat(of('dimm')),tasters=of('taster'),pres=of('praesenz');
+      if(lights.length){
+        if(konv){const c=chain(B,lights,d);add(o,'l15',off+c.len+lights.length*V_LIGHT);
+          tasters.forEach(t=>{const nl=lights.reduce((m,l)=>Math.min(m,d(t,l)),Infinity);add(o,'l15',nl+V_DROP)})}
+        else lights.forEach(l=>add(o,'l15',off+d(B,l)+V_LIGHT));
+      }
+      if(bus){const pts=tasters.concat(pres);if(pts.length){const c=chain(B,pts,d);add(o,'bus',off+c.len+pts.length*V_DROP)}}
+      else{
+        if(konv) {if(!lights.length) tasters.forEach(t=>add(o,'l15',off+d(B,t)+V_DROP))}
+        else tasters.forEach(t=>add(o,'l15',off+d(B,t)+V_DROP));
+        pres.forEach(q=>{const nl=lights.reduce((m,l)=>Math.min(m,d(q,l)),Infinity);add(o,'l15',isFinite(nl)?nl+0.5:off+d(B,q))});
+      }
+      of('rollladen').forEach(x=>add(o,'l515',off+d(B,x)+0.5));
+      of('netzwerk').forEach(x=>add(o,'cat',2*(off+d(B,x)+V_DROP)));
+      of('tv').forEach(x=>add(o,'koax',off+d(B,x)+V_DROP));
+      for(const k in DEDC) of(k).forEach(x=>add(o,DEDC[k],off+d(B,x)+V_DROP));
+    }else{
+      allM=false;
+      const len=8+fi*4;
+      add(o,'l15',(n(r,'licht')+n(r,'dimm'))*len+(bus?0:n(r,'taster')*4));
+      add(o,'l515',n(r,'rollladen')*len);
+      add(o,'l25',(n(r,'steckdose')+n(r,'steckdose_schalt'))*5+(n(r,'steckdose')+n(r,'steckdose_schalt')?12:0)+(n(r,'backofen')+n(r,'gsp')+n(r,'wm')+n(r,'trockner')+n(r,'tor'))*(len+4));
+      add(o,'l525',n(r,'herd')*(len+4)); add(o,'l56',n(r,'wallbox')*20);
+      if(bus) add(o,'bus',(n(r,'taster')+n(r,'praesenz'))*10);
+      add(o,'cat',n(r,'netzwerk')*2*(len+6)); add(o,'koax',n(r,'tv')*(len+8));
+    }
+    rooms.push({floor:f.name,room:r.name,measured:geo,runs:o});
+  }));
+  return {tot,rooms,anyMeasured:anyM,allMeasured:anyM&&allM};
+}
+
 /* ---------- Export für den Hub ---------- */
+// Was im Hub steuerbar ist: smart = alles, konventionell = nur das Nachgerüstete
+function hubCounts(p,r){
+  if(!isKonv(p)) return Object.fromEntries(DEV.map(d=>[d.k,n(r,d.k)]));
+  const o={};RETRO.forEach(x=>{o[x.ref]=(o[x.ref]||0)+retro(r,x.k)});return o;
+}
 function hubExport(p){
   const floors=p.floors.map(f=>({name:f.name,rooms:f.rooms.map(r=>{
     const devices=[],BASE={light:'Licht',dimmer:'Licht',blind:'Rollladen',heating:'Heizung',gate:'Tor',other:'Gerät'};
-    const tot={},seen={},bn=d=>d.base||BASE[d.kind];
-    DEV.filter(d=>d.kind).forEach(d=>{const b=bn(d);tot[b]=(tot[b]||0)+n(r,d.k)});
-    DEV.filter(d=>d.kind).forEach(d=>{const c=n(r,d.k),b=bn(d);for(let i=0;i<c;i++){
+    const tot={},seen={},bn=d=>d.base||BASE[d.kind],hc=hubCounts(p,r),cnt=k=>hc[k]||0;
+    DEV.filter(d=>d.kind).forEach(d=>{const b=bn(d);tot[b]=(tot[b]||0)+cnt(d.k)});
+    DEV.filter(d=>d.kind).forEach(d=>{const c=cnt(d.k),b=bn(d);for(let i=0;i<c;i++){
       seen[b]=(seen[b]||0)+1; const no=tot[b]>1?' '+seen[b]:'';
       devices.push({id:`plan:${slug(f.name)}:${slug(r.name)}:${slug(b)}${no?'-'+seen[b]:''}`,name:`${r.name} ${b}${no}`,kind:d.kind,planned:true});
     }});
@@ -229,7 +307,7 @@ function hubExport(p){
   })}));
   const {list}=circuits(p);
   return {format:'liesenberg-home-plan',version:1,generated:new Date().toISOString(),
-    home_name:p.name,backend:p.system==='knx'?'knx':p.system,ausstattungswert:p.aw,floors,
+    home_name:p.name,backend:isKonv(p)?'shelly':p.system,mode:isKonv(p)?'konventionell':'smart',ausstattungswert:p.aw,floors,
     circuits:list.map(c=>({nr:c.nr,name:c.name,where:c.where,protection:c.prot,cable:c.cable,phase:c.phase})),
     hinweis:'Planungsstand. Geräte-IDs werden beim Einlernen im Hub den echten Kanälen zugeordnet.'};
 }
@@ -244,7 +322,7 @@ function examplePlan(){
     {id:uid(),name:'Außen',rooms:[R('Terrasse','aussen',0,0,aw),R('Garage','garage',18,0,aw)]}
   ]};
 }
-function blankPlan(){return {name:'Neuer Plan',adresse:'',aw:2,system:'luxor',floors:[{id:uid(),name:'EG',rooms:[]}]}}
+function blankPlan(){return {name:'Neues Haus',adresse:'',aw:2,mode:'smart',system:'luxor',floors:[{id:uid(),name:'EG',rooms:[]}]}}
 
 
 /* ---------- Reiter */
@@ -253,30 +331,6 @@ function devRow(r,d,recv,fi,ri){
   return `<div class="dev"><span class="code" title="${esc(d.l)}">${d.c}</span><span>${esc(d.l)}</span>
   <span class="step"><button aria-label="weniger" data-dec="${fi}:${ri}:${d.k}">−</button><span>${v}</span><button aria-label="mehr" data-inc="${fi}:${ri}:${d.k}">+</button></span>
   <span class="rec${low?' low':''}" title="Richtwert für Ausstattungswert">${rv?'Empf. '+rv:''}</span></div>`;
-}
-function tabRooms(t,p){
-  let h='';
-  h+=`<div class="row" style="margin-bottom:16px"><button class="btn" data-act="allrec">Alle Räume auf Empfehlung setzen</button><span class="muted" style="font-size:13px">Orange markiert: weniger als der Richtwert.</span></div>`;
-  p.floors.forEach((f,fi)=>{
-    h+=`<section class="floor"><div class="floorhead"><input type="text" aria-label="Etage" data-floor="${fi}" value="${esc(f.name)}">
-      <button class="btn small" data-addroom="${fi}">Raum hinzufügen</button>${f.rooms.length?'':`<button class="btn small ghost" data-rmfloor="${fi}">Etage löschen</button>`}</div><div class="rooms">`;
-    if(!f.rooms.length) h+=`<div class="empty">Noch keine Räume auf dieser Etage.</div>`;
-    f.rooms.forEach((r,ri)=>{
-      const rv=rec(r,p.aw);
-      const extra=DEV.filter(d=>!d.core&&(n(r,d.k)||rv[d.k]));
-      const addable=DEV.filter(d=>!d.core&&!extra.includes(d));
-      h+=`<article class="room"><div class="roomhead"><input type="text" class="name" aria-label="Raumname" data-rname="${fi}:${ri}" value="${esc(r.name)}"><button class="btn small ghost" data-rmroom="${fi}:${ri}" aria-label="Raum löschen">✕</button></div>
-      <div class="roommeta"><select aria-label="Raumtyp" data-rtype="${fi}:${ri}">${Object.entries(RT).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.n}</option>`).join('')}</select>
-      <label>m² <input type="number" min="0" step="0.5" data-rarea="${fi}:${ri}" value="${+r.area||0}"></label>
-      <label>Fenster <input type="number" min="0" data-rwin="${fi}:${ri}" value="${+r.windows||0}"></label></div>
-      <div class="devs">${DEV.filter(d=>d.core).concat(extra).map(d=>devRow(r,d,rv,fi,ri)).join('')}</div>
-      <div class="roomfoot"><button class="btn small" data-recroom="${fi}:${ri}">Empfehlung übernehmen</button>
-      ${addable.length?`<select aria-label="Anschluss hinzufügen" data-adddev="${fi}:${ri}"><option value="">+ Anschluss</option>${addable.map(d=>`<option value="${d.k}">${esc(d.l)}</option>`).join('')}</select>`:''}</div></article>`;
-    });
-    h+=`</div></section>`;
-  });
-  h+=`<button class="btn" data-act="addfloor">Etage hinzufügen</button>`;
-  t.innerHTML=h;
 }
 function tabCircuits(t,p){
   const {list,ph}=circuits(p),act=actuators(p);
@@ -299,7 +353,7 @@ function tabCircuits(t,p){
     <tbody>${act.list.map(a=>`<tr><td>${esc(a.name)}${a.note?`<div class="muted" style="font-size:12.5px">${esc(a.note)}</div>`:''}</td><td class="num">${a.ch??'–'}</td><td class="num">${a.qty}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Noch keine schaltbaren Geräte geplant.</td></tr>'}</tbody></table></div></div>
   </div>`;
 }
-function listText(p,G){return [`Einkaufsliste – ${p.name} (${SYS[p.system]}, Ausstattungswert ${p.aw})`,''].concat(G.flatMap(g=>[g.name.toUpperCase(),...g.items.map(i=>`${i.qty} ${i.unit}  ${i.name}${i.note?'  ('+i.note+')':''}`),''])).concat(['Planungshilfe – Mengen und Artikel mit der Elektrofachkraft abstimmen.']).join('\n')}
+function listText(p,G){return [`Einkaufsliste – ${p.name} (${isKonv(p)?'konventionell':'smart, '+SYS[p.system]}, Ausstattungswert ${p.aw})`,''].concat(G.flatMap(g=>[g.name.toUpperCase(),...g.items.map(i=>`${i.qty} ${i.unit}  ${i.name}${i.note?'  ('+i.note+')':''}`),''])).concat(['Planungshilfe – Mengen und Artikel mit der Elektrofachkraft abstimmen.']).join('\n')}
 function listCSV(G){const q=s=>'"'+String(s).replace(/"/g,'""')+'"';return ['Gruppe;Menge;Einheit;Artikel;Hinweis'].concat(G.flatMap(g=>g.items.map(i=>[g.name,i.qty,i.unit,i.name,i.note].map(q).join(';')))).join('\n')}
 function tabList(t,p){
   const G=shopping(p);

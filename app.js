@@ -3,7 +3,7 @@
    Ohne Zugangsdaten in config.js läuft alles im Demo-Modus nur in diesem Browser. */
 const ROLE={owner:'Besitzer',family:'Familie',electrician:'Elektriker'};
 const LOGTYPES=['Installation','Erweiterung / Änderung','Wartung','Prüfung (E-Check / DGUV V3)','Störung / Reparatur'];
-const S={sb:null,mode:'demo',uid:null,email:'',houses:{},cur:null,tab:'raeume',dirty:false,log:[],members:[],invites:[],chan:null,confirmDelete:false};
+const S={sb:null,mode:'demo',uid:null,email:'',houses:{},cur:null,tab:'plan',floor:0,dirty:false,log:[],members:[],invites:[],chan:null,confirmDelete:false};
 const LKEY='lh-elektroplaner-web-v1';
 
 function plan(){const h=S.houses[S.cur];return h&&h.data}
@@ -27,7 +27,7 @@ async function init(){
   }else{
     S.mode='demo';
     try{S.houses=JSON.parse(localStorage.getItem(LKEY)||'{}')}catch(e){S.houses={}}
-    if(!Object.keys(S.houses).length) S.houses={demo:{name:'Musterhaus (Beispiel)',role:'owner',data:examplePlan()}};
+    if(!Object.keys(S.houses).length) S.houses={demo:{name:'Musterhaus (Beispiel)',role:'owner',data:withExampleFloor(examplePlan())}};
     S.cur=Object.keys(S.houses)[0];
     $('#planbar').hidden=false;
     $('#who').hidden=false;
@@ -205,25 +205,94 @@ async function invite(email,role,send){
 }
 
 /* ---------- Darstellung */
+const STEPS=[['plan','1','Grundriss & Räume'],['art','2','Konventionell oder smart'],['ergebnis','3','Ergebnis']];
+const AWS={1:'Einfach',2:'Standard',3:'Komfort'};
 function render(){
   const sel=$('#planSel'),ids=Object.keys(S.houses);
   sel.innerHTML=ids.map(id=>`<option value="${esc(id)}"${id===S.cur?' selected':''}>${esc(S.houses[id].name||'Ohne Namen')}</option>`).join('')||'<option>Noch kein Haus</option>';
   const p=plan(),m=$('#main');
-  if(!p){m.innerHTML=`<div class="empty" style="margin-top:24px"><h2>Noch kein Haus</h2><p>Lege ein neues Haus an oder lade das Musterhaus als Vorlage. Wenn dich jemand eingeladen hat, erscheint das Haus hier, sobald du dich mit der eingeladenen Adresse angemeldet hast.</p><div class="row" style="justify-content:center"><button class="btn primary" data-act="new">Neues Haus</button><button class="btn" data-act="example">Beispiel laden</button></div></div>`;return}
-  const tabs=[['raeume','Räume'],['kreise','Stromkreise & Verteiler'],['liste','Einkaufsliste'],['export','Export in die App'],['wartung','Wartungsbuch'],['beteiligte','Beteiligte']];
+  if(!p){m.innerHTML=`<div class="empty" style="margin-top:24px"><h2>Noch kein Haus</h2><p>Lege ein neues Haus an oder schau dir das Musterhaus an. Wenn dich jemand eingeladen hat, erscheint das Haus hier, sobald du dich mit der eingeladenen Adresse angemeldet hast.</p><div class="row" style="justify-content:center"><button class="btn primary" data-act="new">Neues Haus</button><button class="btn" data-act="example">Musterhaus ansehen</button></div></div>`;return}
+  if(S.floor>=p.floors.length) S.floor=0;
   m.innerHTML=`
-  <section class="settings">
-    <div class="field"><label for="pName">Haus / Projekt</label><input type="text" id="pName" maxlength="80" value="${esc(p.name)}"></div>
-    <div class="field"><label for="pAdr">Adresse / Notiz</label><input type="text" id="pAdr" value="${esc(p.adresse||'')}"></div>
-    <div class="field"><span class="lbl">Ausstattungswert</span><div class="seg" role="group">${[1,2,3].map(a=>`<button data-aw="${a}" aria-pressed="${p.aw===a}">${AWN[a]}</button>`).join('')}</div></div>
-    <div class="field"><span class="lbl">Steuerung</span><div class="seg" role="group">${Object.entries(SYS).map(([k,v])=>`<button data-sys="${k}" aria-pressed="${p.system===k}">${v}</button>`).join('')}</div></div>
-  </section>
-  <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px">Deine Rolle: <span class="role">${esc(ROLE[myRole()]||'')}</span></span></div>
-  ${p.example?'<p class="note">Das ist ein Beispielplan. Sobald du etwas änderst, wird er gespeichert.</p>':''}
-  <nav class="tabs" role="tablist">${tabs.map(([k,v])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${v}</button>`).join('')}</nav>
+  <div class="housebar"><input type="text" id="pName" maxlength="80" aria-label="Name des Hauses" value="${esc(p.name)}">
+    <span class="muted" style="font-size:13px">Deine Rolle: <span class="role">${esc(ROLE[myRole()]||'')}</span></span></div>
+  ${p.example?'<p class="note">Das ist das Musterhaus. Sobald du etwas änderst, wird es gespeichert.</p>':''}
+  <nav class="steps" role="tablist">${STEPS.map(([k,nr,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}"><span class="nr">${nr}</span>${l}</button>`).join('')}
+    <span class="more"><button role="tab" data-tab="wartung" aria-selected="${S.tab==='wartung'}">Wartungsbuch</button><button role="tab" data-tab="beteiligte" aria-selected="${S.tab==='beteiligte'}">Beteiligte</button></span></nav>
   <div id="tab"></div>`;
   const t=$('#tab');
-  ({raeume:tabRooms,kreise:tabCircuits,liste:tabList,export:tabExport,wartung:tabLog,beteiligte:tabMembers})[S.tab](t,p);
+  ({plan:stepPlan,art:stepArt,ergebnis:stepResult,wartung:tabLog,beteiligte:tabMembers})[S.tab](t,p);
+}
+function next(tab,label){return `<div class="nextbar"><button class="btn primary big" data-tab="${tab}">${label} →</button></div>`}
+function roomCard(p,fi,ri){
+  const r=p.floors[fi].rooms[ri],rv=rec(r,p.aw),geo=!!r.items;
+  const extra=DEV.filter(d=>!d.core&&(n(r,d.k)||rv[d.k])),addable=DEV.filter(d=>!d.core&&!extra.includes(d));
+  const sum=DEV.filter(d=>n(r,d.k)).map(d=>`<span class="chip"><b>${d.c}</b> ${n(r,d.k)}</span>`).join('')||'<span class="muted">keine Anschlüsse</span>';
+  return `<article class="room${ED.sel===r.id?' sel':''}"><div class="roomhead"><input type="text" class="name" aria-label="Raumname" data-rname="${fi}:${ri}" value="${esc(r.name)}"><button class="btn small ghost" data-rmroom="${fi}:${ri}" aria-label="Raum löschen">✕</button></div>
+   <div class="roommeta"><select aria-label="Raumtyp" data-rtype="${fi}:${ri}">${Object.entries(RT).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.n}</option>`).join('')}</select>
+   <label>m² <input type="number" min="0" step="0.5" data-rarea="${fi}:${ri}" value="${+r.area||0}"></label>
+   <label>Fenster <input type="number" min="0" data-rwin="${fi}:${ri}" value="${+r.windows||0}"></label></div>
+   <div class="chips">${sum}</div>
+   <details><summary>Anschlüsse ändern</summary><div class="devs">${DEV.filter(d=>d.core).concat(extra).map(d=>devRow(r,d,rv,fi,ri)).join('')}</div>
+   <div class="roomfoot"><button class="btn small" data-recroom="${fi}:${ri}">Vorschlag neu setzen</button>
+   ${addable.length?`<select aria-label="Anschluss hinzufügen" data-adddev="${fi}:${ri}"><option value="">+ Anschluss</option>${addable.map(d=>`<option value="${d.k}">${esc(d.l)}</option>`).join('')}</select>`:''}</div>
+   ${geo?'<p class="muted" style="font-size:12.5px;margin:6px 0 0">Neue Anschlüsse erscheinen in der Raummitte, im Grundriss mit „Verschieben“ an die richtige Stelle ziehen.</p>':''}</details></article>`;
+}
+function stepPlan(t,p){
+  const fi=S.floor,f=p.floors[fi];
+  let h=`<div class="floorbar"><div class="seg" role="group" aria-label="Etage">${p.floors.map((x,i)=>`<button data-floorsel="${i}" aria-pressed="${i===fi}">${esc(x.name)}</button>`).join('')}</div>
+    <button class="btn small" data-act="addfloor">+ Etage</button>
+    <span class="field" style="flex-direction:row;align-items:center;gap:8px;margin-left:auto"><span class="lbl">Ausstattung</span><span class="seg" role="group">${[1,2,3].map(a=>`<button data-aw="${a}" aria-pressed="${p.aw===a}" title="Ausstattungswert ${a} (DIN 18015-2 / RAL-RG 678)">${AWS[a]}</button>`).join('')}</span></span></div>
+   <div class="row" style="margin:10px 0"><label class="lbl" for="floorName">Etage</label><input type="text" id="floorName" data-floor="${fi}" value="${esc(f.name)}" style="width:10em">
+    ${!f.rooms.length&&p.floors.length>1?`<button class="btn small ghost" data-rmfloor="${fi}">Etage löschen</button>`:''}</div>`;
+  const cards=f.rooms.map((r,ri)=>roomCard(p,fi,ri)).join('');
+  if(f.plan){
+    h+=`<div class="planlayout"><div>${editorHTML(p,fi)}</div><aside class="side">${pendingHTML(p,fi)}
+      ${f.rooms.length?`<h3 class="sidehead">Räume auf dieser Etage</h3>`:''}<div class="roomlist">${cards}</div></aside></div>`;
+  }else{
+    h+=`<label class="drop"><input type="file" id="planFile" accept="image/*,application/pdf" hidden>
+        <b>Grundriss hochladen</b><span>Foto, Bild oder PDF vom Architekten. Danach tippst du in die Räume, das Tool schlägt Steckdosen, Licht und Schalter vor und berechnet die Kabellängen.</span><span class="btn primary">Datei wählen</span></label>
+      <p class="muted" style="text-align:center;margin:14px 0">oder ohne Grundriss: Räume als Liste anlegen <button class="btn small" data-addroom="${fi}">+ Raum</button></p>
+      <div class="rooms">${cards}</div>`;
+  }
+  h+=next('art','Weiter: konventionell oder smart');
+  t.innerHTML=h;
+}
+function stepArt(t,p){
+  const konv=isKonv(p);
+  let h=`<div class="choice">
+   <button class="opt${konv?' on':''}" data-mode="konv"><b>Konventionell</b><span>Normale Schalter und Steckdosen. Smart wird es mit Zwischensteckern oder kleinen Shelly-Modulen hinter dem Schalter, auch später.</span></button>
+   <button class="opt${!konv?' on':''}" data-mode="smart"><b>Smart</b><span>Alles läuft über eine Steuerung im Verteiler. Licht, Rollläden und Heizung sind von Anfang an in der App.</span></button></div>`;
+  if(konv){
+    h+=`<h3 class="sub">Was soll smart werden?</h3><div class="choice three">${Object.entries(PRESETS).map(([k,v])=>`<button class="opt${p.preset===k?' on':''}" data-preset="${k}"><b>${v.l}</b><span>${v.d}</span></button>`).join('')}</div>`;
+    const rows=[];p.floors.forEach((f,fi)=>f.rooms.forEach((r,ri)=>{const cells=RETRO.map(x=>{const mx=retroMax(r,x);return mx?`<td><span class="step"><button aria-label="weniger" data-rdec="${fi}:${ri}:${x.k}">−</button><span>${retro(r,x.k)}</span><button aria-label="mehr" data-rinc="${fi}:${ri}:${x.k}">+</button></span><span class="muted" style="font-size:12px"> von ${mx}</span></td>`:'<td class="muted">–</td>'});rows.push(`<tr><td><b>${esc(r.name)}</b><div class="muted" style="font-size:12px">${esc(f.name)}</div></td>${cells.join('')}</tr>`)}));
+    h+=rows.length?`<div class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">Pro Raum anpassen</h3><p class="muted" style="font-size:13px;margin-top:0">Zwischenstecker brauchen keinen Elektriker. Alles andere sitzt in der Schalterdose und baut die Elektrofachkraft ein.</p>
+      <div class="tablewrap"><table><thead><tr><th>Raum</th>${RETRO.map(x=>`<th>${esc(x.l)}<div class="muted" style="font-weight:400;font-size:11.5px;text-transform:none;letter-spacing:0">${esc(x.art)}</div></th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`:'<p class="empty">Lege zuerst Räume an.</p>';
+  }else{
+    const SD={luxor:'Theben LUXORliving: günstiger Einstieg in die Busanlage, einfache Inbetriebnahme. Busleitung zu Tastern und Meldern.',knx:'KNX: offener Standard mit vielen Herstellern, am flexibelsten, braucht einen KNX-Elektriker.',shelly:'Shelly Pro im Verteiler: ohne Busleitung, normale Taster, Verbindung über Netzwerk. Günstig, gut für Sanierung.'};
+    h+=`<h3 class="sub">Welches System?</h3><div class="choice three">${Object.entries(SYS).map(([k,v])=>`<button class="opt${p.system===k?' on':''}" data-sys="${k}"><b>${v}</b><span>${SD[k]}</span></button>`).join('')}</div>`;
+  }
+  h+=next('ergebnis','Weiter: Ergebnis mit Kabeln und Einkaufsliste');
+  t.innerHTML=h;
+}
+function stepResult(t,p){
+  const K=cableRuns(p),cs=circuits(p).list,G=shopping(p);
+  const tot=Object.values(K.tot).reduce((a,b)=>a+b,0)*1.15;
+  t.innerHTML=`<div class="stats">
+    <div class="stat"><b class="mono">${allRooms(p).length}</b><span>Räume</span></div>
+    <div class="stat"><b class="mono">${cs.length}</b><span>Stromkreise</span></div>
+    <div class="stat"><b class="mono">${Math.round(tot)} m</b><span>Leitungen gesamt (+15 %)</span></div>
+    <div class="stat"><b class="mono">${isKonv(p)?'Konv.':SYS[p.system]}</b><span>${isKonv(p)?'mit Smart-Nachrüstung':'Steuerung'}</span></div></div>
+   <section class="res"><h2>Kabellängen</h2>
+    <p class="muted" style="font-size:13.5px">${K.allMeasured?'Aus dem Grundriss gemessen: Weg entlang der Wände vom Verteiler zu jedem Anschluss, dazu die Höhen.':K.anyMeasured?'Räume mit Grundriss sind gemessen, die anderen grob geschätzt.':'Grob geschätzt. Mit Grundriss werden die Längen pro Anschluss gemessen.'} Richtwert für die Bestellung, die Elektrofachkraft legt Querschnitte und Wege fest.</p>
+    <div class="tablewrap"><table><thead><tr><th>Leitung</th><th class="num">Länge</th><th class="num">mit 15 % Reserve</th></tr></thead><tbody>
+     ${CABLES.filter(c=>K.tot[c.k]).map(c=>`<tr><td>${esc(c.l)}</td><td class="num">${Math.round(K.tot[c.k])} m</td><td class="num"><b>${Math.ceil(K.tot[c.k]*1.15)} m</b>${c.ring?` <span class="muted">(${Math.ceil(K.tot[c.k]*1.15/c.ring)}× ${c.ring} m)</span>`:''}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Noch keine Anschlüsse.</td></tr>'}</tbody></table></div>
+    <details style="margin-top:8px"><summary>Pro Raum</summary><div class="tablewrap"><table><thead><tr><th>Raum</th>${CABLES.filter(c=>K.tot[c.k]).map(c=>`<th class="num">${esc(c.l.split(' (')[0])}</th>`).join('')}</tr></thead><tbody>
+     ${K.rooms.map(r=>`<tr><td>${esc(r.room)} <span class="muted">· ${esc(r.floor)}${r.measured?'':' · geschätzt'}</span></td>${CABLES.filter(c=>K.tot[c.k]).map(c=>`<td class="num">${r.runs[c.k]?Math.round(r.runs[c.k])+' m':'–'}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details></section>
+   <section class="res"><h2>Einkaufsliste</h2><div id="resList"></div></section>
+   <section class="res"><h2>Stromkreise und Verteiler</h2><div id="resCirc"></div></section>
+   <section class="res"><h2>In die App übernehmen</h2><div id="resExp"></div></section>`;
+  tabList($('#resList'),p);tabCircuits($('#resCirc'),p);tabExport($('#resExp'),p);
 }
 
 function download(filename,text,mime){
@@ -233,6 +302,14 @@ function download(filename,text,mime){
 }
 
 /* ---------- Ereignisse */
+function resetRoom(p,f,r){r.dev=rec(r,p.aw);if(r.items&&f.plan){autoPlace(f,r);syncDev(r)}if(isKonv(p))presetRoom(p.preset,r)}
+async function uploadPlan(file){
+  const fi=S.floor;setSync('Grundriss wird geladen …');document.body.classList.add('busy');
+  try{const pl=await loadPlanFile(file),p=plan(),f=p.floors[fi];f.plan=pl;f.rooms.forEach(r=>{delete r.rect;delete r.items});
+    ED.tool='scale';ED.scalePts=[];ED.askScale=false;ED.zoom=1;changed();}
+  catch(e){toast('Grundriss ließ sich nicht laden: '+errText(e));setSync('')}
+  finally{document.body.classList.remove('busy')}
+}
 function at(s){const [fi,ri,k]=s.split(':');return {f:plan().floors[+fi],r:plan().floors[+fi].rooms[+ri],k}}
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button'); if(!b) return;
@@ -244,23 +321,28 @@ document.addEventListener('click',async e=>{
   switch(d.act){
     case 'logout':await S.sb.auth.signOut();return;
     case 'new':newHouse(blankPlan());return;
-    case 'example':newHouse(examplePlan());return;
+    case 'example':newHouse(withExampleFloor(examplePlan()));return;
     case 'askdel':S.confirmDelete=true;render();return;
     case 'nodel':S.confirmDelete=false;render();return;
     case 'delhouse':deleteHouse();return;
     case 'leave':{const {error}=await S.sb.from('members').delete().eq('house_id',S.cur).eq('user_id',S.uid);if(error)toast(errText(error));else{toast('Haus verlassen');loadHouses()}return}
   }
   if(!p) return;
-  if(d.aw){p.aw=+d.aw;changed();return}
+  if(d.aw){p.aw=+d.aw;p.floors.forEach(f=>f.rooms.forEach(r=>resetRoom(p,f,r)));changed();toast('Vorschläge für alle Räume neu gesetzt');return}
   if(d.sys){p.system=d.sys;changed();return}
-  if(d.inc||d.dec){const {r,k}=at(d.inc||d.dec);r.dev=r.dev||{};r.dev[k]=Math.max(0,n(r,k)+(d.inc?1:-1));changed();return}
-  if(d.recroom){const {r}=at(d.recroom+':x');r.dev=rec(r,p.aw);changed();return}
+  if(d.inc||d.dec){const {f,r,k}=at(d.inc||d.dec);
+    if(r.items&&f.plan){if(d.inc)addItem(f,r,k);else removeItem(r,k)}else{r.dev=r.dev||{};r.dev[k]=Math.max(0,n(r,k)+(d.inc?1:-1))}
+    if(isKonv(p))presetRoom(p.preset,r);changed();return}
+  if(d.recroom){const {f,r}=at(d.recroom+':x');resetRoom(p,f,r);changed();return}
+  if(d.floorsel!=null){S.floor=+d.floorsel;ED.pending=null;ED.scalePts=[];ED.askScale=false;ED.zoom=1;render();return}
+  if(d.mode){p.mode=d.mode;if(d.mode==='konv'&&!p.preset)applyPreset(p,'plug');changed();return}
+  if(d.preset){applyPreset(p,d.preset);changed();return}
+  if(d.rinc||d.rdec){const {r,k}=at(d.rinc||d.rdec);r.retro=r.retro||{};r.retro[k]=Math.max(0,retro(r,k)+(d.rinc?1:-1));changed();return}
   if(d.rmroom){const [fi,ri]=d.rmroom.split(':');p.floors[+fi].rooms.splice(+ri,1);changed();return}
-  if(d.addroom){const r={id:uid(),name:'Neuer Raum',type:'wohnen',area:16,windows:1,dev:{}};r.dev=rec(r,p.aw);p.floors[+d.addroom].rooms.push(r);changed();return}
-  if(d.rmfloor){p.floors.splice(+d.rmfloor,1);changed();return}
+  if(d.addroom){const r={id:uid(),name:'Neuer Raum',type:'wohnen',area:16,windows:1,dev:{}};r.dev=rec(r,p.aw);if(isKonv(p))presetRoom(p.preset,r);p.floors[+d.addroom].rooms.push(r);changed();return}
+  if(d.rmfloor){p.floors.splice(+d.rmfloor,1);S.floor=0;changed();return}
   switch(d.act){
-    case 'addfloor':p.floors.push({id:uid(),name:'Etage '+(p.floors.length+1),rooms:[]});changed();break;
-    case 'allrec':p.floors.flatMap(f=>f.rooms).forEach(r=>r.dev=rec(r,p.aw));changed();toast('Alle Räume auf Richtwerte gesetzt');break;
+    case 'addfloor':p.floors.push({id:uid(),name:['EG','OG','DG','KG'][p.floors.length]||'Etage '+(p.floors.length+1),rooms:[]});S.floor=p.floors.length-1;changed();break;
     case 'copylist':copy(listText(p,shopping(p)));break;
     case 'csv':download(`Einkaufsliste-${slug(p.name)}.csv`,'﻿'+listCSV(shopping(p)),'text/csv;charset=utf-8');break;
     case 'copyjson':copy(JSON.stringify(hubExport(p),null,2));break;
@@ -276,10 +358,11 @@ document.addEventListener('change',e=>{
   if(el.id==='pAdr'){p.adresse=el.value;changed();return}
   if(d.floor!=null){p.floors[+d.floor].name=el.value.trim()||'Etage';changed();return}
   if(d.rname){at(d.rname+':x').r.name=el.value.trim()||'Raum';changed();return}
-  if(d.rtype){const {r}=at(d.rtype+':x');r.type=el.value;if(r.name==='Neuer Raum') r.name=RT[el.value].n;r.dev=rec(r,p.aw);changed();return}
+  if(d.rtype){const {f,r}=at(d.rtype+':x');r.type=el.value;if(r.name==='Neuer Raum') r.name=RT[el.value].n;resetRoom(p,f,r);changed();return}
   if(d.rarea){at(d.rarea+':x').r.area=Math.max(0,+el.value||0);changed();return}
-  if(d.rwin){const {r}=at(d.rwin+':x');r.windows=Math.max(0,parseInt(el.value)||0);changed();return}
-  if(d.adddev){if(!el.value) return;const {r}=at(d.adddev+':x');r.dev=r.dev||{};r.dev[el.value]=Math.max(1,n(r,el.value));changed();return}
+  if(d.rwin){const {f,r}=at(d.rwin+':x');r.windows=Math.max(0,parseInt(el.value)||0);resetRoom(p,f,r);changed();return}
+  if(el.id==='planFile'&&el.files[0]){uploadPlan(el.files[0]);return}
+  if(d.adddev){if(!el.value) return;const {f,r}=at(d.adddev+':x');if(r.items&&f.plan){if(!n(r,el.value))addItem(f,r,el.value)}else{r.dev=r.dev||{};r.dev[el.value]=Math.max(1,n(r,el.value))}changed();return}
 });
 document.addEventListener('submit',async e=>{
   e.preventDefault();

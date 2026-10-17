@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Liesenberg Home</title>
-<meta name="description" content="Liesenberg Home: Licht, Rollladen, Tor, Heizung und Energie in einer iPhone-App. Läuft lokal auf einem Raspberry Pi, ohne Cloud. Was du an Hardware brauchst, mit Einkaufslinks.">
+<meta name="description" content="Liesenberg Home: Licht, Rollladen, Tor, Heizung und Solarstrom in einer iPhone-App. Läuft lokal auf einem Raspberry Pi, ohne Cloud. Starter-Kit ab ca. 200 €.">
 <link rel="stylesheet" href="styles.css">
 <script>
   // Anmelde-Links aus älteren E-Mails zeigen noch auf die Startseite: weiter zum Planer
@@ -13,200 +13,242 @@
   }
 </script>
 <style>
-  .hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:32px;align-items:center;padding:36px 0 28px}
-  .hero h2{font-size:clamp(30px,5vw,46px);line-height:1.05}
-  .hero p.lead{font-size:18px;color:var(--muted);max-width:36em;margin:14px 0 20px}
-  .cta{display:flex;flex-wrap:wrap;gap:10px}
-  .cta a{text-decoration:none;display:inline-block}
-  .btn.big{padding:11px 18px;font-size:16px}
-  .facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:13.5px;color:var(--muted)}
-  .facts span::before{content:"✓ ";color:var(--ok);font-weight:700}
-
-  .phone{justify-self:center;width:250px;max-width:100%;aspect-ratio:9/18.5;border:9px solid var(--ink);border-radius:38px;background:var(--bg);padding:26px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 18px 40px rgba(0,0,0,.18);position:relative;overflow:hidden}
-  .phone::before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);width:72px;height:18px;border-radius:10px;background:var(--ink)}
-  .phone .ph-t{font-family:var(--f-display);font-weight:600;font-size:19px;margin:4px 2px 2px}
-  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 10px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px}
-  .tile b{font-weight:600}
-  .tile .on{color:var(--accent);font-weight:600}
-  .tiles2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .tiles2 .tile{flex-direction:column;align-items:flex-start}
-  .bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;width:100%}
-  .bar i{display:block;height:100%;background:var(--ok)}
-
-  section.block{padding:30px 0;border-top:1px solid var(--line)}
-  section.block > h2{margin-bottom:6px}
-  section.block > p.sub{color:var(--muted);margin:0 0 18px;max-width:44em}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
-  .card h3{font-size:17px;margin-bottom:6px}
-  .card p{margin:0;color:var(--muted);font-size:14px}
-
-  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;counter-reset:s}
-  .steps .card{counter-increment:s}
-  .steps .card h3::before{content:counter(s);display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:14px;margin-right:8px;vertical-align:2px}
-
-  .hw h3.group{margin:22px 0 4px;font-size:19px}
-  .hw p.group{margin:0 0 10px;color:var(--muted);font-size:14px;max-width:46em}
-  .tag{display:inline-block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:2px;color:var(--muted)}
-  .tag.must{border-color:var(--accent);color:var(--accent)}
-  .tag.el{border-color:var(--warn);color:var(--warn)}
-  table.items{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px}
-  table.items th,table.items td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-  table.items th{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--soft)}
-  table.items tr:last-child td{border-bottom:0}
-  table.items td.price{white-space:nowrap;font-variant-numeric:tabular-nums}
-  table.items td.shop{white-space:nowrap}
-  table.items td.shop a{margin-right:10px}
+  :root{--hero:#0c2430;--hero-ink:#f2f7f9;--hero-muted:#a9c0ca;--glow:#4fb3d9;--sun:#f5b83d}
+  body{background:var(--bg);margin:0}
   a{color:var(--accent)}
-  .kits{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-  .kit .sum{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0}
-  .kit ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+  .nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--hero) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .nav .in{max-width:1180px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:18px}
+  .logo{display:flex;align-items:center;gap:10px;color:var(--hero-ink);text-decoration:none;font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:.01em}
+  .logo svg{flex:none}
+  .nav .links{display:flex;gap:18px;margin-left:auto;align-items:center}
+  .nav .links a{color:var(--hero-muted);text-decoration:none;font-size:14.5px}
+  .nav .links a:hover{color:var(--hero-ink)}
+  .nav .links a.cta{color:#0b1417;background:var(--glow);padding:7px 14px;border-radius:999px;font-weight:600}
+  @media (max-width:720px){.nav .links a:not(.cta){display:none}}
 
-  @media (max-width:760px){
-    .hero{grid-template-columns:1fr;padding-top:22px}
-    .phone{width:220px}
-    table.items thead{display:none}
-    table.items,table.items tbody,table.items tr,table.items td{display:block;width:100%}
-    table.items tr{border-bottom:1px solid var(--line);padding:6px 0}
-    table.items td{border:0;padding:3px 12px}
-    table.items td.price::before{content:"ca. ";color:var(--muted)}
+  .hero{background:radial-gradient(1200px 500px at 85% 10%,#14506a 0%,transparent 60%),var(--hero);color:var(--hero-ink);overflow:hidden}
+  .hero .in{max-width:1180px;margin:0 auto;padding:56px max(16px,env(safe-area-inset-left,0px)) 40px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:40px;align-items:center}
+  .eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--glow)}
+  .hero h1{font-size:clamp(38px,6.4vw,68px);line-height:1;margin:14px 0 18px;letter-spacing:-.01em}
+  .hero h1 em{font-style:normal;color:var(--glow)}
+  .hero p.lead{font-size:clamp(17px,2vw,20px);color:var(--hero-muted);max-width:32em;margin:0 0 26px}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .b{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid transparent}
+  .b.pri{background:var(--glow);color:#0b1417}
+  .b.pri:hover{filter:brightness(1.08)}
+  .b.sec{color:var(--hero-ink);border-color:rgba(255,255,255,.28)}
+  .b.sec:hover{border-color:var(--hero-ink)}
+  .b.dark{background:var(--ink);color:var(--bg)}
+  .b.line{color:var(--ink);border-color:var(--line);background:var(--panel)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px;max-width:640px}
+  .stats div{border-top:1px solid rgba(255,255,255,.18);padding-top:10px}
+  .stats b{display:block;font-family:var(--f-display);font-size:30px;color:var(--hero-ink)}
+  .stats span{font-size:13px;color:var(--hero-muted)}
+
+  .phone{justify-self:center;width:270px;max-width:100%;aspect-ratio:9/18.6;border:10px solid #050d12;border-radius:42px;background:#f3f5f6;padding:30px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;color:#1b2328;transform:rotate(2deg)}
+  .phone::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:12px;background:#050d12}
+  .phone .t{font-family:var(--f-display);font-weight:600;font-size:21px;margin:2px 4px}
+  .tile{background:#fff;border-radius:14px;padding:10px 11px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .tile b{font-weight:600}
+  .tile .on{color:#0f6a8f;font-weight:600}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .two .tile{flex-direction:column;align-items:flex-start}
+  .flow{height:6px;border-radius:3px;background:#e9eef0;overflow:hidden;width:100%}
+  .flow i{display:block;height:100%;width:72%;background:linear-gradient(90deg,var(--sun),#2f7d4f)}
+
+  main section{max-width:1180px;margin:0 auto;padding:64px max(16px,env(safe-area-inset-left,0px)) 0}
+  .kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  main h2{font-size:clamp(28px,4vw,42px);line-height:1.05;margin:10px 0 12px}
+  main h2 em{font-style:normal;color:var(--accent)}
+  .intro{color:var(--muted);font-size:17px;max-width:40em;margin:0 0 26px}
+
+  .steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:s}
+  .step3{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;counter-increment:s}
+  .step3::before{content:counter(s);display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;margin-bottom:12px}
+  .step3 h3{font-size:21px;margin-bottom:6px}
+  .step3 p{margin:0;color:var(--muted)}
+
+  .kit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .kit .pic{background:linear-gradient(135deg,#0f2f3d,#0c2430);display:grid;place-items:center;padding:30px;min-height:280px}
+  .kit .body{padding:28px}
+  .badge{display:inline-block;background:var(--sun);color:#1b2328;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px}
+  .kit h3{font-size:30px;margin:12px 0 4px}
+  .price{font-family:var(--f-display);font-size:40px;font-weight:600;margin:8px 0 2px}
+  .price small{font-size:15px;color:var(--muted);font-family:var(--f-body);font-weight:400}
+  .kit ul{list-style:none;padding:0;margin:16px 0 20px;display:flex;flex-direction:column;gap:9px}
+  .kit li{display:flex;gap:10px;align-items:baseline;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:8px}
+  .kit li span{color:var(--muted);font-size:14px;white-space:nowrap}
+  .kit .fine{font-size:13px;color:var(--muted);margin:12px 0 0}
+
+  .prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:18px}
+  .prod{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px}
+  .prod .ic{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;margin-bottom:6px;color:var(--accent)}
+  .prod h3{font-size:18px}
+  .prod p{margin:0;color:var(--muted);font-size:14px;flex:1}
+  .prod .row2{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+  .prod .pr{font-weight:600}
+  .prod a.buy{font-size:14px;font-weight:600;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink)}
+  .prod a.buy:hover{border-color:var(--accent)}
+  .tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+
+  .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .feat div{background:var(--panel);padding:20px}
+  .feat h3{font-size:18px;margin-bottom:6px}
+  .feat p{margin:0;color:var(--muted);font-size:14.5px}
+
+  .planner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--hero);color:var(--hero-ink);border-radius:20px;padding:34px}
+  .planner h2{color:var(--hero-ink)}
+  .planner h2 em{color:var(--glow)}
+  .planner p{color:var(--hero-muted)}
+  .planner ol{margin:0;padding-left:20px;color:var(--hero-ink);display:flex;flex-direction:column;gap:8px}
+
+  .sys{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .sys span{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;font-size:14px}
+
+  footer{margin-top:72px;background:var(--hero);color:var(--hero-muted)}
+  footer .in{max-width:1180px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:24px;font-size:14px}
+  footer h4{color:var(--hero-ink);font-size:14px;margin:0 0 10px;font-family:var(--f-body)}
+  footer a{color:var(--hero-muted);text-decoration:none;display:block;margin:5px 0}
+  footer a:hover{color:var(--hero-ink)}
+  footer .legal{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.12);padding-top:16px;font-size:12.5px}
+
+  @media (max-width:860px){
+    .hero .in{grid-template-columns:1fr;padding-top:36px}
+    .phone{width:230px;transform:none}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .steps3,.feat{grid-template-columns:1fr}
+    .kit,.planner{grid-template-columns:1fr}
+    .kit .pic{min-height:200px}
+    footer .in{grid-template-columns:1fr 1fr}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="brand"><small>Smart Home ohne Cloud</small><h1>Liesenberg Home</h1></div>
-    <nav class="cta">
-      <a class="btn ghost" href="#app">App</a>
-      <a class="btn ghost" href="#hardware">Hardware</a>
-      <a class="btn" href="planer.html">Elektroplaner</a>
-    </nav>
-  </header>
+<header class="nav"><div class="in">
+  <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4fb3d9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0c2430"/></svg>Liesenberg Home</a>
+  <nav class="links"><a href="#so-gehts">So geht's</a><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="#planer">Elektroplaner</a><a class="cta" href="#starter-kit">Starter-Kit</a></nav>
+</div></header>
 
-  <section class="hero">
-    <div>
-      <h2>Dein ganzes Haus in einer App.</h2>
-      <p class="lead">Licht, Rollladen, Tor, Heizung, Hausgeräte und Solarstrom: Liesenberg Home steuert alles vom iPhone aus. Das Herz ist ein kleiner Raspberry Pi bei dir zu Hause, deine Daten bleiben im eigenen Netz.</p>
-      <div class="cta">
-        <a class="btn primary big" id="appstore" href="#app">Im App Store laden</a>
-        <a class="btn big" href="#hardware">Was brauche ich?</a>
+<div class="hero" id="top"><div class="in">
+  <div>
+    <div class="eyebrow">Smart Home ohne Cloud · iPhone-App</div>
+    <h1>Dein ganzes Haus <em>in einer App.</em></h1>
+    <p class="lead">Licht, Rollläden, Tor, Heizung und Solarstrom: Liesenberg Home steuert alles vom iPhone. Das Herz ist ein kleiner Raspberry Pi bei dir zu Hause. Deine Daten bleiben im eigenen Netz.</p>
+    <div class="actions"><a class="b pri" href="#starter-kit">Starter-Kit ansehen · ca. 200 €</a><a class="b sec" href="#so-gehts">So funktioniert's</a></div>
+    <div class="stats"><div><b>0</b><span>Cloud-Konten</span></div><div><b>1</b><span>App für alles</span></div><div><b>6</b><span>Steckdosen smart im Kit</span></div><div><b>0 €</b><span>Abo</span></div></div>
+  </div>
+  <div class="phone" aria-hidden="true">
+    <div class="t">Zuhause</div>
+    <div class="tile"><span><b>Solar</b> 6,4 kW</span><span class="on">Überschuss</span></div>
+    <div class="tile" style="flex-direction:column;align-items:flex-start;gap:6px"><b>Strom heute: 72 % vom Dach</b><div class="flow"><i></i></div></div>
+    <div class="two">
+      <div class="tile"><b>Wohnzimmer</b><span class="on">Licht 60 %</span></div>
+      <div class="tile"><b>Rollläden</b><span>alle offen</span></div>
+      <div class="tile"><b>Tor</b><span>zu</span></div>
+      <div class="tile"><b>Heizung</b><span>21,5 °C</span></div>
+    </div>
+    <div class="tile"><span>Waschmaschine</span><span class="on">startet bei Sonne</span></div>
+    <div class="tile"><span>Gute Nacht</span><span>Szene</span></div>
+  </div>
+</div></div>
+
+<main>
+  <section id="so-gehts">
+    <div class="kicker">So geht's</div>
+    <h2>Ein Hub. <em>Alle Geräte.</em> Keine Cloud.</h2>
+    <p class="intro">Für den Einstieg brauchst du keinen Elektriker. Stecker rein, App auf, fertig.</p>
+    <div class="steps3">
+      <div class="step3"><h3>Hub anschließen</h3><p>Raspberry Pi mit der Liesenberg-Home-Software an den Router stecken. Die Einrichtung läuft im Browser.</p></div>
+      <div class="step3"><h3>Stecker rein</h3><p>Shelly-Zwischenstecker in die Steckdose, Lampe oder Gerät hinein. Der Hub findet sie im WLAN.</p></div>
+      <div class="step3"><h3>App öffnen</h3><p>Hub koppeln, Räume anlegen, Familie per QR-Code einladen. Jeder sieht nur, was er darf.</p></div>
+    </div>
+  </section>
+
+  <section id="starter-kit">
+    <div class="kicker">Starter-Kit</div>
+    <h2>Alles für den Anfang. <em>Ohne Elektriker.</em></h2>
+    <p class="intro">Das Kit, das wir selbst verschenken: ein Hub und sechs smarte Steckdosen. Einfach bei den Händlern unten bestellen.</p>
+    <div class="kit">
+      <div class="pic"><svg viewBox="0 0 240 200" width="100%" style="max-width:320px" aria-hidden="true">
+        <rect x="20" y="70" width="110" height="74" rx="10" fill="#1d4f63" stroke="#4fb3d9" stroke-width="2"/><rect x="34" y="84" width="34" height="26" rx="3" fill="#0c2430"/><g fill="#4fb3d9"><rect x="80" y="84" width="38" height="5" rx="2"/><rect x="80" y="95" width="30" height="5" rx="2"/></g><rect x="30" y="144" width="18" height="8" rx="2" fill="#a9c0ca"/><rect x="100" y="144" width="20" height="8" rx="2" fill="#a9c0ca"/>
+        <text x="75" y="172" text-anchor="middle" fill="#a9c0ca" font-size="11" font-family="system-ui">Hub</text>
+        <g transform="translate(150 40)"><rect width="66" height="100" rx="16" fill="#f2f7f9"/><circle cx="33" cy="42" r="18" fill="#dfe7ea"/><circle cx="26" cy="42" r="3.5" fill="#0c2430"/><circle cx="40" cy="42" r="3.5" fill="#0c2430"/><circle cx="33" cy="82" r="5" fill="#4fb3d9"/></g>
+        <text x="183" y="172" text-anchor="middle" fill="#a9c0ca" font-size="11" font-family="system-ui">6× Shelly Plug S</text>
+      </svg></div>
+      <div class="body">
+        <span class="badge">Plug &amp; Play</span>
+        <h3>Liesenberg Home Starter-Kit</h3>
+        <div class="price">ca. 204 € <small>Stand Oktober 2026</small></div>
+        <ul>
+          <li><b>Raspberry Pi 4 (2 GB), Set mit Netzteil und Gehäuse</b><span>ca. 100 €</span></li>
+          <li><b>microSD-Karte 64 GB (A2)</b><span>ca. 12 €</span></li>
+          <li><b>6× Shelly Plug S Gen3</b><span>je ca. 15 €</span></li>
+          <li><b>Liesenberg Home App</b><span>kostenlos</span></li>
+        </ul>
+        <div class="actions">
+          <a class="b dark" href="https://www.conrad.de/de/search.html?search=Raspberry%20Pi%204%202GB%20Essentials%20Kit" target="_blank" rel="noopener">Pi-Set bei Conrad</a>
+          <a class="b line" href="https://geizhals.de/a3310522.html" target="_blank" rel="noopener">Shelly Plug S vergleichen</a>
+          <a class="b line" href="https://geizhals.de/?fs=microSDXC+64GB+A2" target="_blank" rel="noopener">microSD</a>
+        </div>
+        <p class="fine">Preise schwanken stark, besonders beim Raspberry Pi. Bitte vor dem Kauf vergleichen. Keine Werbelinks. In Frankreich passen dieselben Teile.</p>
       </div>
-      <div class="facts"><span>Kostenlose App</span><span>Läuft lokal, ohne Cloud-Konto</span><span>Familie und Gäste mit eigenen Rechten</span></div>
     </div>
-    <div class="phone" aria-hidden="true">
-      <div class="ph-t">Zuhause</div>
-      <div class="tile"><span>☀️ <b>Solar</b> 6,4 kW</span><span class="on">Überschuss</span></div>
-      <div class="tiles2">
-        <div class="tile"><b>Wohnzimmer</b><span class="on">Licht 60 %</span></div>
-        <div class="tile"><b>Rollläden</b><span>alle offen</span></div>
-        <div class="tile"><b>Tor</b><span>geschlossen</span></div>
-        <div class="tile"><b>Heizung</b><span>21,5 °C</span></div>
+
+    <h3 style="margin:34px 0 0;font-size:22px">Mehr dazu? Einzeln erweitern</h3>
+    <div class="prods">
+      <div class="prod"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="4"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="11" r="1"/></svg></div><h3>Shelly Plug S Gen3</h3><p>Weitere Lampen und Geräte schalten, mit Verbrauchsmessung.</p><div class="row2"><span class="pr">ca. 15 €</span><a class="buy" href="https://geizhals.de/a3310522.html" target="_blank" rel="noopener">Preise</a></div></div>
+      <div class="prod"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg></div><span class="tag">Elektriker</span><h3>Shelly 1PM Gen3</h3><p>Hinter den Lichtschalter. Der normale Schalter funktioniert weiter.</p><div class="row2"><span class="pr">ca. 12–20 €</span><a class="buy" href="https://geizhals.de/a3201809.html" target="_blank" rel="noopener">Preise</a></div></div>
+      <div class="prod"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></div><span class="tag">Elektriker</span><h3>Shelly Dimmer Gen3</h3><p>Dimmbare LED-Lampen stufenlos aus der App.</p><div class="row2"><span class="pr">ca. 30 €</span><a class="buy" href="https://geizhals.de/a3396832.html" target="_blank" rel="noopener">Preise</a></div></div>
+      <div class="prod"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 8h16M4 12h16M4 16h16"/></svg></div><span class="tag">Elektriker</span><h3>Shelly 2PM Gen3</h3><p>Rollläden und Jalousien fahren, auch nach Sonne und Uhrzeit.</p><div class="row2"><span class="pr">ca. 20 €</span><a class="buy" href="https://geizhals.de/a3360078.html" target="_blank" rel="noopener">Preise</a></div></div>
+    </div>
+  </section>
+
+  <section id="app">
+    <div class="kicker">Die App</div>
+    <h2>Alles, was im Haus passiert. <em>Auf einen Blick.</em></h2>
+    <p class="intro">Kostenlos für iPhone und Apple Watch. <span id="appstore-line">Im App Store unter „Liesenberg Home“.</span></p>
+    <div class="feat">
+      <div><h3>Licht, Rollladen, Tor</h3><p>Schalten, dimmen, öffnen. Auch über Widgets, Siri und die Apple Watch.</p></div>
+      <div><h3>Solar-Assistent</h3><p>Startet Waschmaschine, Trockner und Spülmaschine, wenn der Strom vom Dach kommt.</p></div>
+      <div><h3>Energie live</h3><p>Solar, Netz, Batterie und Wallbox, Kosten pro Tag und Monat, 3D-Ansicht vom Haus.</p></div>
+      <div><h3>Szenen</h3><p>„Gute Nacht“, „Ankommen“ und ein Urlaubsmodus mit einem Tipp.</p></div>
+      <div><h3>Wetter und Hinweise</h3><p>Regenradar, Warnung bei Sturm und Frost, Erinnerung ans Gießen.</p></div>
+      <div><h3>Familie und Gäste</h3><p>Einladung per QR-Code, jeder mit eigenen Rechten.</p></div>
+    </div>
+    <p style="margin-top:18px;color:var(--muted)">Schon vorhanden? Der Hub bindet auch ein:</p>
+    <div class="sys"><span>Theben LUXORliving</span><span>KNX</span><span>Home Assistant</span><span>evcc (Solar, Wallbox)</span><span>Daikin Wärmepumpe</span><span>Bosch/Siemens Home Connect</span><span>Roborock</span><span>HomePod</span></div>
+  </section>
+
+  <section id="planer">
+    <div class="planner">
+      <div>
+        <div class="kicker" style="color:var(--glow)">Für Neubau und Sanierung</div>
+        <h2>Grundriss hochladen. <em>Elektroplan bekommen.</em></h2>
+        <p>Der Elektroplaner schlägt Steckdosen, Licht und Schalter vor, rechnet die Kabellängen aus und macht die Einkaufsliste. Gemeinsam mit deinem Elektriker, danach direkt in die App.</p>
+        <div class="actions" style="margin-top:18px"><a class="b pri" href="planer.html">Elektroplaner öffnen</a></div>
       </div>
-      <div class="tile" style="flex-direction:column;align-items:flex-start;gap:5px"><b>Hausbatterie 78 %</b><div class="bar"><i style="width:78%"></i></div></div>
-      <div class="tile"><span>🧺 Waschmaschine</span><span class="on">startet bei Sonne</span></div>
-      <div class="tile"><span>🌙 Gute Nacht</span><span>Szene</span></div>
+      <ol>
+        <li>Grundriss als Bild oder PDF hochladen</li>
+        <li>In die Räume tippen, die Wände werden erkannt</li>
+        <li>Konventionell oder smart wählen (LUXORliving, KNX, Shelly)</li>
+        <li>Kabellängen, Stromkreise und Einkaufsliste bekommen</li>
+      </ol>
     </div>
   </section>
+</main>
 
-  <section class="block" id="app">
-    <h2>Was die App kann</h2>
-    <p class="sub">Eine App für alle im Haus. Jeder bekommt per QR-Code eine Einladung und sieht nur, was er darf.</p>
-    <div class="grid">
-      <div class="card"><h3>Licht, Rollladen, Tor</h3><p>Schalten, dimmen, Rollläden fahren, Tor und Fußgängertür öffnen. Auch über Widgets, Siri und die Apple Watch.</p></div>
-      <div class="card"><h3>Szenen</h3><p>„Gute Nacht“ und „Ankommen“ mit einem Tipp, Urlaubsmodus für die Zeit, in der niemand da ist.</p></div>
-      <div class="card"><h3>Energie</h3><p>Solaranlage, Netz, Batterie und Wallbox (über evcc) live, Kosten pro Tag und Monat, 3D-Ansicht vom Haus mit den Stromflüssen.</p></div>
-      <div class="card"><h3>Solar-Assistent</h3><p>Sagt, wann der Strom günstig oder vom Dach kommt, und startet Waschmaschine, Trockner oder Spülmaschine dann automatisch.</p></div>
-      <div class="card"><h3>Heizung und Klima</h3><p>Wärmepumpe und Raumtemperaturen im Blick, Hinweise bei Frost.</p></div>
-      <div class="card"><h3>Wetter</h3><p>Regenradar, 48-Stunden-Vorschau, Warnungen bei Sturm und Erinnerungen ans Gießen.</p></div>
-      <div class="card"><h3>Saugroboter</h3><p>Roborock-Karte in der App, einzelne Räume reinigen lassen.</p></div>
-      <div class="card"><h3>Wartung und Berichte</h3><p>Erinnerungen an Filter und Prüfungen, Monatsbericht und Jahresrückblick zum Verbrauch.</p></div>
-      <div class="card"><h3>Sicher und aktuell</h3><p>Alles läuft auf deinem Hub im Heimnetz. Updates kommen signiert, mit Sicherung und automatischem Zurückrollen, falls etwas schiefgeht.</p></div>
-    </div>
-  </section>
-
-  <section class="block">
-    <h2>So kommst du hin</h2>
-    <p class="sub">Für das Grundpaket mit Zwischensteckern brauchst du keinen Elektriker.</p>
-    <div class="steps">
-      <div class="card"><h3>Hardware kaufen</h3><p>Raspberry Pi als Hub und ein paar Shelly-Stecker. Die Liste unten hat Links zum Preisvergleich.</p></div>
-      <div class="card"><h3>Hub einrichten</h3><p>Hub-Software auf die Speicherkarte, Pi ans Netzwerk, dann im Browser die Einrichtung durchklicken.</p></div>
-      <div class="card"><h3>App verbinden</h3><p>App laden, Hub koppeln, Räume und Geräte anlegen, Familie per QR-Code einladen.</p></div>
-      <div class="card"><h3>Größer planen</h3><p>Neubau oder Umbau? Mit dem <a href="planer.html">Elektroplaner</a> planst du mit deinem Elektriker Räume, Stromkreise und Einkaufsliste und übernimmst das Ergebnis in den Hub.</p></div>
-    </div>
-  </section>
-
-  <section class="block hw" id="hardware">
-    <h2>Welche Hardware brauche ich?</h2>
-    <p class="sub">Du brauchst ein iPhone, WLAN zu Hause und den Hub. Alles andere suchst du dir nach Haus und Budget aus. Preise sind grobe Richtwerte (Deutschland, Oktober 2026) und ändern sich oft. Die Links führen zum Preisvergleich oder zum Hersteller, es sind keine Werbelinks.</p>
-
-    <h3 class="group">1. Der Hub <span class="tag must">Pflicht</span></h3>
-    <p class="group">Ein Raspberry Pi läuft rund um die Uhr und verbindet App und Geräte. 1 bis 2 GB Arbeitsspeicher reichen.</p>
-    <table class="items">
-      <thead><tr><th>Teil</th><th>Wofür</th><th>Preis</th><th>Kaufen</th></tr></thead>
-      <tbody>
-        <tr><td><b>Raspberry Pi 4, 2 GB, Set mit Netzteil und Gehäuse</b></td><td>Der Hub. Günstigste Variante, reicht völlig.</td><td class="price">100 €</td><td class="shop"><a href="https://geizhals.de/a2638722.html" target="_blank" rel="noopener">Preisvergleich</a><a href="https://www.conrad.de/de/search.html?search=Raspberry%20Pi%204%202GB%20Essentials%20Kit" target="_blank" rel="noopener">Conrad</a></td></tr>
-        <tr><td>oder Raspberry Pi 5, 2 GB</td><td>Schneller, dazu Netzteil (27 W, USB-C) und Gehäuse kaufen.</td><td class="price">130 €</td><td class="shop"><a href="https://geizhals.de/a3271181.html" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td><b>microSD-Karte 64 GB, Klasse A2</b></td><td>Speicher für Hub-Software und Daten (z. B. SanDisk Extreme, Samsung PRO Plus).</td><td class="price">12 €</td><td class="shop"><a href="https://geizhals.de/?fs=microSDXC+64GB+A2" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td>LAN-Kabel, 2 m</td><td>Pi an den Router. Stabiler als WLAN.</td><td class="price">4 €</td><td class="shop"><a href="https://geizhals.de/?fs=Patchkabel+Cat6+2m" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td><b>iPhone</b></td><td>Für die App. Apple Watch optional.</td><td>vorhanden</td><td class="shop"><a href="#app" class="js-appstore">App Store</a></td></tr>
-      </tbody>
-    </table>
-
-    <h3 class="group">2. Schalten ohne Elektriker <span class="tag">Plug &amp; Play</span></h3>
-    <p class="group">Zwischenstecker in die Steckdose, Lampe oder Gerät hinein, fertig. Misst auch den Verbrauch.</p>
-    <table class="items">
-      <thead><tr><th>Teil</th><th>Wofür</th><th>Preis</th><th>Kaufen</th></tr></thead>
-      <tbody>
-        <tr><td><b>Shelly Plug S Gen3</b></td><td>Stehlampe, Kaffeemaschine, Ventilator ein- und ausschalten, Verbrauch messen. Bis 2500 W.</td><td class="price">15 €</td><td class="shop"><a href="https://geizhals.de/a3310522.html" target="_blank" rel="noopener">Preisvergleich</a><a href="https://www.shelly.com/de" target="_blank" rel="noopener">Shelly</a></td></tr>
-      </tbody>
-    </table>
-
-    <h3 class="group">3. Einbau in Schalter und Verteiler <span class="tag el">Elektriker</span></h3>
-    <p class="group">Diese Module sitzen hinter dem Lichtschalter oder im Zählerschrank. Einbauen darf sie nur eine Elektrofachkraft, in der Schalterdose muss ein Neutralleiter liegen.</p>
-    <table class="items">
-      <thead><tr><th>Teil</th><th>Wofür</th><th>Preis</th><th>Kaufen</th></tr></thead>
-      <tbody>
-        <tr><td><b>Shelly 1PM Gen3</b></td><td>Deckenlicht schalten, der normale Schalter funktioniert weiter. Misst Verbrauch.</td><td class="price">12–20 €</td><td class="shop"><a href="https://geizhals.de/a3201809.html" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td><b>Shelly Dimmer Gen3</b></td><td>Dimmbare LED-Lampen dimmen.</td><td class="price">30 €</td><td class="shop"><a href="https://geizhals.de/a3396832.html" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td><b>Shelly 2PM Gen3</b></td><td>Rollladen oder Jalousie fahren.</td><td class="price">20 €</td><td class="shop"><a href="https://geizhals.de/a3360078.html" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td>Shelly 1 Gen3</td><td>Tor oder Türöffner per Impuls (potentialfreier Kontakt).</td><td class="price">17 €</td><td class="shop"><a href="https://geizhals.de/?fs=Shelly+1+Gen3" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-        <tr><td>Shelly Pro 3EM</td><td>Stromverbrauch des ganzen Hauses messen, im Zählerschrank.</td><td class="price">110 €</td><td class="shop"><a href="https://geizhals.de/?fs=Shelly+Pro+3EM" target="_blank" rel="noopener">Preisvergleich</a></td></tr>
-      </tbody>
-    </table>
-
-    <h3 class="group">4. Schon vorhanden? Wird eingebunden <span class="tag">optional</span></h3>
-    <p class="group">Hast du schon eines dieser Systeme, kann der Hub es übernehmen. Du musst nichts neu kaufen.</p>
-    <div class="grid">
-      <div class="card"><h3>LUXORliving / KNX</h3><p>Theben LUXORliving mit Zentrale IP1 und KNX-Anlagen: Licht, Dimmer, Rollläden, Heizung direkt aus der App.</p></div>
-      <div class="card"><h3>Home Assistant</h3><p>Läuft schon Home Assistant, holt der Hub Geräte von dort.</p></div>
-      <div class="card"><h3>Solar, Batterie, Wallbox</h3><p>Über <a href="https://evcc.io" target="_blank" rel="noopener">evcc</a> (kostenlos): Wechselrichter, Hausbatterie und Wallbox der gängigen Hersteller.</p></div>
-      <div class="card"><h3>Wärmepumpe</h3><p>Daikin über die Onecta-Schnittstelle.</p></div>
-      <div class="card"><h3>Hausgeräte</h3><p>Bosch und Siemens mit Home Connect: Waschmaschine, Trockner und Spülmaschine starten, wenn die Sonne scheint.</p></div>
-      <div class="card"><h3>Saugroboter und Lautsprecher</h3><p>Roborock (z. B. Saros 10R) mit Raumauswahl, HomePods für Durchsagen.</p></div>
-    </div>
-
-    <h3 class="group">Beispiel-Pakete</h3>
-    <div class="kits">
-      <div class="card kit"><h3>Einstieg, ohne Elektriker</h3><div class="sum">ca. 200 €</div><p>Für Wohnung oder Haus zur Miete.</p>
-        <ul><li>Raspberry Pi 4 Set + microSD</li><li>6× Shelly Plug S Gen3</li></ul></div>
-      <div class="card kit"><h3>Kleine Wohnung, mit Elektriker</h3><div class="sum">ca. 300 €</div><p>Plus Einbau durch den Elektriker.</p>
-        <ul><li>Raspberry Pi + microSD + LAN-Kabel</li><li>4× Shelly 1PM, 1× Dimmer, 1× 2PM</li><li>2× Shelly Plug S</li></ul></div>
-      <div class="card kit"><h3>Neubau oder Sanierung</h3><div class="sum">nach Plan</div><p>Am besten mit dem Elektriker im <a href="planer.html">Elektroplaner</a>: Räume anlegen, Stromkreise und Einkaufsliste bekommen, später in den Hub übernehmen.</p></div>
-    </div>
-  </section>
-
-  <p class="foot">Liesenberg Home ist ein privates Projekt. Angaben zu Geräten und Preisen ohne Gewähr. Arbeiten an der festen Elektroinstallation nur durch eine Elektrofachkraft.
-  <br><a href="https://github.com/michaelliesenberg/LiesenbergHome" target="_blank" rel="noopener">Hub-Software auf GitHub</a> · <a href="planer.html">Elektroplaner</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
-</div>
+<footer><div class="in">
+  <div><a class="logo" href="#top" style="margin:0 0 8px"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4fb3d9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0c2430"/></svg>Liesenberg Home</a>Smart Home, das bei dir zu Hause bleibt.</div>
+  <div><h4>Produkt</h4><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="planer.html">Elektroplaner</a></div>
+  <div><h4>Technik</h4><a href="https://github.com/michaelliesenberg/LiesenbergHome" target="_blank" rel="noopener">Hub-Software (GitHub)</a><a href="https://evcc.io" target="_blank" rel="noopener">evcc</a><a href="https://www.shelly.com/de" target="_blank" rel="noopener">Shelly</a></div>
+  <div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></div>
+  <div class="legal">Angaben zu Geräten und Preisen ohne Gewähr. Arbeiten an der festen Elektroinstallation nur durch eine Elektrofachkraft.</div>
+</div></footer>
 <script>
-  // Link zur App im App Store hier eintragen (App Store → Teilen → Link kopieren)
+  // Link zur App im App Store hier eintragen, sobald die App freigegeben ist
   var APP_STORE_URL = "";
   if (APP_STORE_URL) {
-    document.querySelectorAll("#appstore, .js-appstore").forEach(function (a) { a.href = APP_STORE_URL; a.target = "_blank"; a.rel = "noopener"; });
-  } else {
-    var b = document.getElementById("appstore");
-    b.textContent = "Im App Store: „Liesenberg Home“";
+    document.getElementById("appstore-line").innerHTML = '<a href="' + APP_STORE_URL + '" target="_blank" rel="noopener">Im App Store laden</a>';
   }
 </script>
 </body>
