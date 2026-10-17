@@ -1,22 +1,16 @@
 /* Layout: Werkzeug-Oberfläche wie ein Installationsplan – Kopfzeile mit Plan, Reiter, Raumkarten im Raster; Kürzel wie in der Plan-Legende */
+/* Farben aus der Liesenberg-Home-App (Theme.swift): dunkel und minimal, Akzent Solar-Gelb */
 :root{
-  --bg:#f3f5f6; --panel:#ffffff; --ink:#1b2328; --muted:#5d6b73; --line:#d6dde1; --soft:#e9eef0;
-  --accent:#0f6a8f; --accent-ink:#ffffff; --warn:#b35c00; --ok:#2f7d4f; --bad:#b3261e;
-  --l1:#7a4a2a; --l2:#2a2a2a; --l3:#8a9196; --n:#2c6fb7; --pe:#5f8f2e;
-  --f-display:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;
-  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --f-mono:ui-monospace,Menlo,Consolas,monospace;
+  --bg:#0A0B0D; --panel:#15171B; --ink:#F3F4F6; --muted:#A0A6B0; --line:#23262C; --soft:#1C1F24;
+  --accent:#F6B73C; --accent-ink:#0A0B0D; --warn:#FF8A5B; --ok:#46D39A; --bad:#ff6b6b; --grid:#8AB4FF; --faint:#5A606A;
+  --l1:#c08457; --l2:#d0d0d0; --l3:#9aa3a8; --n:#8AB4FF; --pe:#46D39A;
+  --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,system-ui,sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --radius:20px; color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#12171a; --panel:#1a2125; --ink:#e4eaed; --muted:#97a6ae; --line:#2e383d; --soft:#222b30;
-  --accent:#4fb3d9; --accent-ink:#0b1417; --warn:#f0a24b; --ok:#6cc58f; --bad:#ff8a80;
-  --l1:#c08457; --l2:#d0d0d0; --l3:#9aa3a8; --n:#6aa8ef; --pe:#9ccc65; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#12171a; --panel:#1a2125; --ink:#e4eaed; --muted:#97a6ae; --line:#2e383d; --soft:#222b30;
-  --accent:#4fb3d9; --accent-ink:#0b1417; --warn:#f0a24b; --ok:#6cc58f; --bad:#ff8a80;
-  --l1:#c08457; --l2:#d0d0d0; --l3:#9aa3a8; --n:#6aa8ef; --pe:#9ccc65; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
 h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0}
 h1{font-size:28px} h2{font-size:22px} h3{font-size:18px}
@@ -140,9 +134,9 @@ pre{background:var(--soft);border-radius:6px;padding:12px;overflow:auto;max-heig
 .ed-svg{display:block;touch-action:pan-x pan-y;user-select:none;-webkit-user-select:none}
 .ed-svg.tool-room,.ed-svg.tool-move{touch-action:none}
 .ed-svg.tool-scale,.ed-svg.tool-board,.ed-svg.tool-room,.ed-svg.tool-add{cursor:crosshair}
-.ed-room rect{fill:rgba(15,106,143,.07);stroke:#0f6a8f;stroke-width:2;vector-effect:non-scaling-stroke}
-.ed-room.sel rect{fill:rgba(15,106,143,.14)}
-.ed-rname{fill:#0f6a8f;font-weight:600;font-family:var(--f-body);paint-order:stroke;stroke:#fff;stroke-width:3px}
+.ed-room rect{fill:rgba(246,183,60,.12);stroke:#d9951a;stroke-width:2;vector-effect:non-scaling-stroke}
+.ed-room.sel rect{fill:rgba(246,183,60,.26)}
+.ed-rname{fill:#9a6400;font-weight:600;font-family:var(--f-body);paint-order:stroke;stroke:#fff;stroke-width:3px}
 .ed-it circle{fill:#fff;stroke:#1b2328;stroke-width:1.5;vector-effect:non-scaling-stroke}
 .ed-it text,.ed-board text{text-anchor:middle;font-family:var(--f-mono);font-weight:700;fill:#1b2328;pointer-events:none}
 .ed-it.k-licht circle,.ed-it.k-dimm circle{fill:#fff4c2}
@@ -167,3 +161,11 @@ section.res{margin-top:26px}
 section.res h2{margin-bottom:8px}
 body.busy,body.busy *{cursor:progress!important}
 td .step{display:inline-flex}
+/* App-Look: runde Karten, Pillen-Knöpfe */
+.btn{border-radius:12px;background:var(--soft);border-color:var(--line)}
+.btn.primary{color:var(--accent-ink)}
+.room,.card,.stat,.opt,.drop{border-radius:var(--radius)}
+.top{border-bottom:1px solid var(--line)}
+.brand small a{color:var(--accent)!important}
+select,input[type=text],input[type=number],input[type=date],input[type=email],textarea{background:var(--soft);border-color:var(--line);border-radius:10px}
+.ed-hint{border-left-color:var(--accent)}

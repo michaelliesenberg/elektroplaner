@@ -13,10 +13,10 @@
   }
 </script>
 <style>
-  :root{--hero:#0c2430;--hero-ink:#f2f7f9;--hero-muted:#a9c0ca;--glow:#4fb3d9;--sun:#f5b83d}
+  :root{--hero:#0A0B0D;--hero-ink:#F3F4F6;--hero-muted:#A0A6B0;--glow:#F6B73C;--sun:#F6B73C}
   body{background:var(--bg);margin:0}
   a{color:var(--accent)}
-  .nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--hero) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .nav{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--hero) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   .nav .in{max-width:1180px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:18px}
   .logo{display:flex;align-items:center;gap:10px;color:var(--hero-ink);text-decoration:none;font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:.01em}
   .logo svg{flex:none}
@@ -26,7 +26,7 @@
   .nav .links a.cta{color:#0b1417;background:var(--glow);padding:7px 14px;border-radius:999px;font-weight:600}
   @media (max-width:720px){.nav .links a:not(.cta){display:none}}
 
-  .hero{background:radial-gradient(1200px 500px at 85% 10%,#14506a 0%,transparent 60%),var(--hero);color:var(--hero-ink);overflow:hidden}
+  .hero{background:radial-gradient(900px 480px at 80% 20%,rgba(246,183,60,.16) 0%,transparent 60%),radial-gradient(700px 400px at 10% 100%,rgba(138,180,255,.10) 0%,transparent 60%),var(--hero);color:var(--hero-ink);overflow:hidden}
   .hero .in{max-width:1180px;margin:0 auto;padding:56px max(16px,env(safe-area-inset-left,0px)) 40px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:40px;align-items:center}
   .eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--glow)}
   .hero h1{font-size:clamp(38px,6.4vw,68px);line-height:1;margin:14px 0 18px;letter-spacing:-.01em}
@@ -38,23 +38,23 @@
   .b.pri:hover{filter:brightness(1.08)}
   .b.sec{color:var(--hero-ink);border-color:rgba(255,255,255,.28)}
   .b.sec:hover{border-color:var(--hero-ink)}
-  .b.dark{background:var(--ink);color:var(--bg)}
+  .b.dark{background:var(--accent);color:#0A0B0D}
   .b.line{color:var(--ink);border-color:var(--line);background:var(--panel)}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px;max-width:640px}
   .stats div{border-top:1px solid rgba(255,255,255,.18);padding-top:10px}
   .stats b{display:block;font-family:var(--f-display);font-size:30px;color:var(--hero-ink)}
   .stats span{font-size:13px;color:var(--hero-muted)}
 
-  .phone{justify-self:center;width:270px;max-width:100%;aspect-ratio:9/18.6;border:10px solid #050d12;border-radius:42px;background:#f3f5f6;padding:30px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;color:#1b2328;transform:rotate(2deg)}
-  .phone::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:12px;background:#050d12}
+  .phone{justify-self:center;width:270px;max-width:100%;aspect-ratio:9/18.6;border:10px solid #2a2d33;border-radius:42px;background:#0A0B0D;padding:30px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;color:#F3F4F6;transform:rotate(2deg)}
+  .phone::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:12px;background:#2a2d33}
   .phone .t{font-family:var(--f-display);font-weight:600;font-size:21px;margin:2px 4px}
-  .tile{background:#fff;border-radius:14px;padding:10px 11px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .tile{background:#15171B;border-radius:14px;padding:10px 11px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px;}
   .tile b{font-weight:600}
-  .tile .on{color:#0f6a8f;font-weight:600}
+  .tile .on{color:#F6B73C;font-weight:600}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .two .tile{flex-direction:column;align-items:flex-start}
-  .flow{height:6px;border-radius:3px;background:#e9eef0;overflow:hidden;width:100%}
-  .flow i{display:block;height:100%;width:72%;background:linear-gradient(90deg,var(--sun),#2f7d4f)}
+  .flow{height:6px;border-radius:3px;background:#23262C;overflow:hidden;width:100%}
+  .flow i{display:block;height:100%;width:72%;background:linear-gradient(90deg,#F6B73C,#46D39A)}
 
   main section{max-width:1180px;margin:0 auto;padding:64px max(16px,env(safe-area-inset-left,0px)) 0}
   .kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
@@ -69,7 +69,7 @@
   .step3 p{margin:0;color:var(--muted)}
 
   .kit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden}
-  .kit .pic{background:linear-gradient(135deg,#0f2f3d,#0c2430);display:grid;place-items:center;padding:30px;min-height:280px}
+  .kit .pic{background:radial-gradient(400px 260px at 50% 40%,rgba(246,183,60,.14),transparent 70%),var(--soft);display:grid;place-items:center;padding:30px;min-height:280px}
   .kit .body{padding:28px}
   .badge{display:inline-block;background:var(--sun);color:#1b2328;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px}
   .kit h3{font-size:30px;margin:12px 0 4px}
@@ -96,7 +96,7 @@
   .feat h3{font-size:18px;margin-bottom:6px}
   .feat p{margin:0;color:var(--muted);font-size:14.5px}
 
-  .planner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--hero);color:var(--hero-ink);border-radius:20px;padding:34px}
+  .planner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--panel);border:1px solid var(--line);color:var(--hero-ink);border-radius:20px;padding:34px}
   .planner h2{color:var(--hero-ink)}
   .planner h2 em{color:var(--glow)}
   .planner p{color:var(--hero-muted)}
@@ -105,7 +105,7 @@
   .sys{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
   .sys span{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;font-size:14px}
 
-  footer{margin-top:72px;background:var(--hero);color:var(--hero-muted)}
+  footer{margin-top:72px;background:#060708;border-top:1px solid var(--line);color:var(--hero-muted)}
   footer .in{max-width:1180px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:24px;font-size:14px}
   footer h4{color:var(--hero-ink);font-size:14px;margin:0 0 10px;font-family:var(--f-body)}
   footer a{color:var(--hero-muted);text-decoration:none;display:block;margin:5px 0}
@@ -125,7 +125,7 @@
 </head>
 <body>
 <header class="nav"><div class="in">
-  <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4fb3d9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0c2430"/></svg>Liesenberg Home</a>
+  <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#F6B73C"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0A0B0D"/></svg>Liesenberg Home</a>
   <nav class="links"><a href="#so-gehts">So geht's</a><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="#planer">Elektroplaner</a><a class="cta" href="#starter-kit">Starter-Kit</a></nav>
 </div></header>
 
@@ -170,10 +170,10 @@
     <p class="intro">Das Kit, das wir selbst verschenken: ein Hub und sechs smarte Steckdosen. Einfach bei den Händlern unten bestellen.</p>
     <div class="kit">
       <div class="pic"><svg viewBox="0 0 240 200" width="100%" style="max-width:320px" aria-hidden="true">
-        <rect x="20" y="70" width="110" height="74" rx="10" fill="#1d4f63" stroke="#4fb3d9" stroke-width="2"/><rect x="34" y="84" width="34" height="26" rx="3" fill="#0c2430"/><g fill="#4fb3d9"><rect x="80" y="84" width="38" height="5" rx="2"/><rect x="80" y="95" width="30" height="5" rx="2"/></g><rect x="30" y="144" width="18" height="8" rx="2" fill="#a9c0ca"/><rect x="100" y="144" width="20" height="8" rx="2" fill="#a9c0ca"/>
-        <text x="75" y="172" text-anchor="middle" fill="#a9c0ca" font-size="11" font-family="system-ui">Hub</text>
-        <g transform="translate(150 40)"><rect width="66" height="100" rx="16" fill="#f2f7f9"/><circle cx="33" cy="42" r="18" fill="#dfe7ea"/><circle cx="26" cy="42" r="3.5" fill="#0c2430"/><circle cx="40" cy="42" r="3.5" fill="#0c2430"/><circle cx="33" cy="82" r="5" fill="#4fb3d9"/></g>
-        <text x="183" y="172" text-anchor="middle" fill="#a9c0ca" font-size="11" font-family="system-ui">6× Shelly Plug S</text>
+        <rect x="20" y="70" width="110" height="74" rx="10" fill="#1C1F24" stroke="#F6B73C" stroke-width="2"/><rect x="34" y="84" width="34" height="26" rx="3" fill="#0A0B0D"/><g fill="#F6B73C"><rect x="80" y="84" width="38" height="5" rx="2"/><rect x="80" y="95" width="30" height="5" rx="2"/></g><rect x="30" y="144" width="18" height="8" rx="2" fill="#A0A6B0"/><rect x="100" y="144" width="20" height="8" rx="2" fill="#A0A6B0"/>
+        <text x="75" y="172" text-anchor="middle" fill="#A0A6B0" font-size="11" font-family="system-ui">Hub</text>
+        <g transform="translate(150 40)"><rect width="66" height="100" rx="16" fill="#F3F4F6"/><circle cx="33" cy="42" r="18" fill="#d9dce1"/><circle cx="26" cy="42" r="3.5" fill="#0A0B0D"/><circle cx="40" cy="42" r="3.5" fill="#0A0B0D"/><circle cx="33" cy="82" r="5" fill="#F6B73C"/></g>
+        <text x="183" y="172" text-anchor="middle" fill="#A0A6B0" font-size="11" font-family="system-ui">6× Shelly Plug S</text>
       </svg></div>
       <div class="body">
         <span class="badge">Plug &amp; Play</span>
@@ -229,7 +229,7 @@
       </div>
       <ol>
         <li>Grundriss als Bild oder PDF hochladen</li>
-        <li>In die Räume tippen, die Wände werden erkannt</li>
+        <li>Räume werden automatisch erkannt, du prüfst nur die Raumtypen</li>
         <li>Konventionell oder smart wählen (LUXORliving, KNX, Shelly)</li>
         <li>Kabellängen, Stromkreise und Einkaufsliste bekommen</li>
       </ol>
@@ -238,7 +238,7 @@
 </main>
 
 <footer><div class="in">
-  <div><a class="logo" href="#top" style="margin:0 0 8px"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4fb3d9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0c2430"/></svg>Liesenberg Home</a>Smart Home, das bei dir zu Hause bleibt.</div>
+  <div><a class="logo" href="#top" style="margin:0 0 8px"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#F6B73C"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0A0B0D"/></svg>Liesenberg Home</a>Smart Home, das bei dir zu Hause bleibt.</div>
   <div><h4>Produkt</h4><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="planer.html">Elektroplaner</a></div>
   <div><h4>Technik</h4><a href="https://github.com/michaelliesenberg/LiesenbergHome" target="_blank" rel="noopener">Hub-Software (GitHub)</a><a href="https://evcc.io" target="_blank" rel="noopener">evcc</a><a href="https://www.shelly.com/de" target="_blank" rel="noopener">Shelly</a></div>
   <div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></div>

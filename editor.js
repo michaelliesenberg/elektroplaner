@@ -85,6 +85,58 @@ async function detectRoom(f,x,y){
   return {error:'Hier ist kein Raum zu erkennen. Tippe weiter in die Mitte oder ziehe den Raum als Rechteck auf.'};
 }
 
+// Alle geschlossenen Flächen auf einmal als Räume erkennen
+async function detectAll(f){
+  const sc=f.plan.scale,out=await regions(f,.55,sc*sc*1.5,Infinity,[]);
+  // zweiter Durchgang mit kleinerem Radius nur für kleine Räume (WC, Abstellraum), die beim ersten zugelaufen sind
+  const small=await regions(f,.42,sc*sc*1.2,sc*sc*4.5,out);
+  return out.concat(small).sort((a,b)=>Math.round(a.rect.y/sc/2)-Math.round(b.rect.y/sc/2)||a.rect.x-b.rect.x);
+}
+async function regions(f,fac,minA,maxA,have){
+  const w=f.plan.w,h=f.plan.h,sc=f.plan.scale,rad=Math.max(2,Math.round(fac*sc)),m=await wallMask(f,rad);
+  const lab=new Uint8Array(w*h),q=new Int32Array(w*h),out=[];
+  const inside=(r,o)=>r.x+r.w/2>o.x&&r.x+r.w/2<o.x+o.w&&r.y+r.h/2>o.y&&r.y+r.h/2<o.y+o.h;
+  for(let s0=0;s0<w*h;s0++){if(m[s0]||lab[s0])continue;
+    let qh=0,qt=0,x0=w,x1=0,y0=h,y1=0,edge=false;q[qt++]=s0;lab[s0]=1;
+    while(qh<qt){const i=q[qh++],cx=i%w,cy=(i-cx)/w;if(cx<x0)x0=cx;if(cx>x1)x1=cx;if(cy<y0)y0=cy;if(cy>y1)y1=cy;
+      if(cx===0||cy===0||cx===w-1||cy===h-1)edge=true;
+      if(cx>0&&!m[i-1]&&!lab[i-1]){lab[i-1]=1;q[qt++]=i-1}if(cx<w-1&&!m[i+1]&&!lab[i+1]){lab[i+1]=1;q[qt++]=i+1}
+      if(cy>0&&!m[i-w]&&!lab[i-w]){lab[i-w]=1;q[qt++]=i-w}if(cy<h-1&&!m[i+w]&&!lab[i+w]){lab[i+w]=1;q[qt++]=i+w}}
+    if(edge||qt<minA||qt>maxA||qt>w*h*.6)continue;
+    const r={x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
+    if(f.rooms.some(o=>o.rect&&(inside(r,o.rect)||inside(o.rect,r)))||have.some(o=>inside(r,o.rect)||inside(o.rect,r)))continue;
+    out.push({rect:r,area:qt/sc/sc});
+  }
+  return out;
+}
+// Raumtyp grob aus Größe und Form raten; der Nutzer prüft ihn danach
+function guessTypes(list){
+  const big=list.slice().sort((a,b)=>b.area-a.area);let sleep=0,kitchen=false;
+  return list.map(o=>{const a=o.area,asp=Math.max(o.rect.w,o.rect.h)/Math.min(o.rect.w,o.rect.h);
+    if(o===big[0]&&a>=15)return 'wohnen';
+    if(a<4)return 'wc';
+    if(asp>=2.2&&a<14)return 'flur';
+    if(a<7)return 'bad';
+    if(!kitchen&&a>=8&&a<=20&&o!==big[0]){kitchen=true;return 'kueche'}
+    if(a<=20){return (sleep++)===0?'schlafen':'kind'}
+    return 'essen';
+  });
+}
+async function autoRooms(p,fi){
+  const f=p.floors[fi];if(!f.plan||!f.plan.scale)return 0;
+  ED.busy=true;document.body.classList.add('busy');
+  try{
+    const found=await detectAll(f),types=guessTypes(found);
+    found.forEach((o,i)=>{const t=types[i],r={id:uid(),name:uniqueName(f,RT[t].n),type:t,area:Math.round(o.area*2)/2,windows:guessWindows(t,o.area),rect:o.rect,dev:{},auto:true};
+      r.dev=rec(r,p.aw);autoPlace(f,r);syncDev(r);if(isKonv(p))presetRoom(p.preset,r);f.rooms.push(r)});
+    return found.length;
+  }finally{ED.busy=false;document.body.classList.remove('busy')}
+}
+async function runAutoRooms(){
+  const n_=await autoRooms(plan(),S.floor);ED.tool='room';changed();
+  toast(n_?`${n_} Räume erkannt. Bitte rechts die Raumtypen prüfen.`:'Keine geschlossenen Räume gefunden. Tippe in die Räume oder ziehe sie auf.');
+}
+
 /* ---------- Anschlüsse vorschlagen */
 const symR=f=>Math.max(f.plan.w,f.plan.h)/80;
 function perim(R,t){
@@ -139,8 +191,8 @@ function roomAt(f,pt){const c=f.rooms.filter(r=>r.rect&&pt.x>=r.rect.x&&pt.y>=r.
 /* ---------- Darstellung */
 function hintText(f){
   if(!f.plan.scale) return ED.askScale?'Wie lang ist die Strecke zwischen den beiden Punkten?':`<b>1. Maßstab:</b> Tippe auf zwei Punkte mit bekanntem Abstand, z. B. Anfang und Ende einer Maßkette oder einer Außenwand${ED.scalePts.length?' (noch ein Punkt)':''}.`;
-  if(!f.plan.board) return '<b>2. Verteiler:</b> Tippe dorthin, wo der Zählerschrank oder Verteiler sitzt. Auf oberen Etagen: wo die Leitungen hochkommen.';
-  if(ED.tool==='room') return f.rooms.some(r=>r.rect)?'<b>3. Räume:</b> Tippe in den nächsten Raum. Geht die Erkennung daneben, ziehe ihn als Rechteck auf.':'<b>3. Räume:</b> Tippe in einen Raum. Das Tool erkennt die Wände und schlägt Steckdosen, Licht und Schalter vor.';
+  if(!f.plan.board) return '<b>2. Verteiler:</b> Tippe dorthin, wo der Zählerschrank oder Verteiler sitzt (obere Etagen: wo die Leitungen hochkommen). Danach erkennt das Tool alle Räume automatisch.';
+  if(ED.tool==='room') return f.rooms.some(r=>r.rect)?'<b>3. Prüfen:</b> Räume und Anschlüsse sind vorgeschlagen. Prüfe rechts die Raumtypen. Fehlt ein Raum, tippe hinein oder ziehe ihn als Rechteck auf.':'<b>3. Räume:</b> Tippe in einen Raum. Das Tool erkennt die Wände und schlägt Steckdosen, Licht und Schalter vor.';
   if(ED.tool==='move') return 'Ziehe Symbole an die richtige Stelle.';
   if(ED.tool==='add') return `Tippe in einen Raum, um dort „${esc(DEVK[ED.addK].l)}“ zu setzen.`;
   if(ED.tool==='erase') return 'Tippe auf ein Symbol, um es zu löschen.';
@@ -166,7 +218,7 @@ function editorHTML(p,fi){
    <div class="ed-wrap"><svg id="plansvg" class="ed-svg tool-${ED.tool}" viewBox="0 0 ${P.w} ${P.h}" style="width:${ED.zoom*100}%" role="img" aria-label="Grundriss ${esc(f.name)}">
      <image href="${P.img}" x="0" y="0" width="${P.w}" height="${P.h}"/>${rooms}${pend}${board}${items}${sp}<rect id="dragrect" class="ed-pend" x="0" y="0" width="0" height="0" visibility="hidden"/></svg></div>
    <div class="row ed-foot"><span class="muted" style="font-size:12.5px">Maßstab ${P.scale?`1 m = ${Math.round(P.scale)} px`:'fehlt'} · ${P.board?'Verteiler gesetzt':'Verteiler fehlt'}</span>
-     <button class="btn small ghost" data-ed="rescale">Maßstab neu</button><button class="btn small ghost" data-ed="reboard">Verteiler neu</button><button class="btn small ghost danger" data-ed="rmplan">Grundriss entfernen</button></div>
+     <button class="btn small" data-ed="autorooms">Räume automatisch erkennen</button><button class="btn small ghost" data-ed="rescale">Maßstab neu</button><button class="btn small ghost" data-ed="reboard">Verteiler neu</button><button class="btn small ghost danger" data-ed="rmplan">Grundriss entfernen</button></div>
   </div>`;
 }
 function pendingHTML(p,fi){
@@ -192,7 +244,7 @@ document.addEventListener('pointerdown',e=>{
   const svg=e.target.closest&&e.target.closest('#plansvg'); if(!svg||ED.busy) return;
   const f=curFloor(),P=f.plan,pt=svgPt(svg,e),tool=ED.tool;
   if(tool==='scale'){if(ED.askScale)return;ED.scalePts.push(pt);if(ED.scalePts.length===2)ED.askScale=true;render();setTimeout(()=>{const i=document.getElementById('scaleM');if(i)i.focus()},30);return}
-  if(tool==='board'){P.board=pt;if(!plan().floors.some(x=>x.plan&&x.plan.main))P.main=true;ED.tool='room';changed();return}
+  if(tool==='board'){P.board=pt;if(!plan().floors.some(x=>x.plan&&x.plan.main))P.main=true;ED.tool='room';if(P.scale&&!f.rooms.some(r=>r.rect))runAutoRooms();else changed();return}
   const itEl=e.target.closest('[data-item]');
   if(tool==='erase'){if(itEl){const [ri,ii]=itEl.dataset.item.split(':').map(Number);const r=f.rooms[ri];r.items.splice(ii,1);syncDev(r);changed()}return}
   if(tool==='move'){if(!itEl)return;e.preventDefault();svg.setPointerCapture(e.pointerId);const [ri,ii]=itEl.dataset.item.split(':').map(Number);ED.drag={type:'item',el:itEl,ri,ii,pt};return}
@@ -227,6 +279,7 @@ document.addEventListener('click',e=>{
     case 'reboard':f.plan.board=null;ED.tool='board';changed();break;
     case 'rmplan':if(confirm('Grundriss dieser Etage entfernen? Die Räume bleiben als Liste erhalten.')){delete f.plan;f.rooms.forEach(r=>{delete r.rect;delete r.items});changed()}break;
     case 'pendno':ED.pending=null;render();break;
+    case 'autorooms':runAutoRooms();break;
   }
 });
 document.addEventListener('change',e=>{
@@ -239,7 +292,7 @@ document.addEventListener('submit',e=>{
   if(e.target.id==='scaleForm'){e.preventDefault();e.stopImmediatePropagation();
     const m=parseFloat(String(document.getElementById('scaleM').value).replace(',','.'));if(!(m>0))return;
     const [a,b]=ED.scalePts,f=curFloor();f.plan.scale=Math.hypot(a.x-b.x,a.y-b.y)/m;ED.scalePts=[];ED.askScale=false;
-    f.rooms.forEach(r=>{if(r.rect)r.area=rectArea(f,r.rect)});ED.tool=f.plan.board?'room':'board';changed();return}
+    f.rooms.forEach(r=>{if(r.rect)r.area=rectArea(f,r.rect)});ED.tool=f.plan.board?'room':'board';if(f.plan.board&&!f.rooms.some(r=>r.rect))runAutoRooms();else changed();return}
   if(e.target.id==='pendForm'){e.preventDefault();e.stopImmediatePropagation();
     const pd=ED.pending,p=plan(),f=p.floors[pd.fi];
     const r={id:uid(),name:document.getElementById('pdName').value.trim()||RT[pd.type].n,type:document.getElementById('pdType').value,
