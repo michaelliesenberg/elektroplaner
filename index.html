@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Liesenberg Home</title>
 <meta name="description" content="Liesenberg Home: Licht, Rollladen, Tor, Heizung und Solarstrom in einer iPhone-App. Läuft lokal auf einem Raspberry Pi, ohne Cloud. Starter-Kit ab ca. 200 €.">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/app-icon-256.png">
 <link rel="stylesheet" href="styles.css">
 <script>
   // Anmelde-Links aus älteren E-Mails zeigen noch auf die Startseite: weiter zum Planer
@@ -45,16 +47,29 @@
   .stats b{display:block;font-family:var(--f-display);font-size:30px;color:var(--hero-ink)}
   .stats span{font-size:13px;color:var(--hero-muted)}
 
-  .phone{justify-self:center;width:270px;max-width:100%;aspect-ratio:9/18.6;border:10px solid #2a2d33;border-radius:42px;background:#0A0B0D;padding:30px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;color:#F3F4F6;transform:rotate(2deg)}
-  .phone::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:12px;background:#2a2d33}
-  .phone .t{font-family:var(--f-display);font-weight:600;font-size:21px;margin:2px 4px}
-  .tile{background:#15171B;border-radius:14px;padding:10px 11px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px;}
-  .tile b{font-weight:600}
-  .tile .on{color:#F6B73C;font-weight:600}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .two .tile{flex-direction:column;align-items:flex-start}
-  .flow{height:6px;border-radius:3px;background:#23262C;overflow:hidden;width:100%}
-  .flow i{display:block;height:100%;width:72%;background:linear-gradient(90deg,#F6B73C,#46D39A)}
+  .appicon{border-radius:22.5%;display:block;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+  .shot{width:100%;display:block;border-radius:30px;border:8px solid #22252b;background:#0A0B0D;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08)}
+  .heroshots{position:relative;justify-self:center;width:min(420px,100%);height:560px}
+  .heroshots .shot{position:absolute;width:250px}
+  .heroshots .s1{left:0;top:40px;transform:rotate(-5deg);opacity:.9}
+  .heroshots .s2{right:0;top:0;transform:rotate(3deg)}
+  .storebtn{display:inline-flex;align-items:center;gap:12px;background:#F3F4F6;color:#0A0B0D;border-radius:14px;padding:9px 18px 9px 10px;text-decoration:none;font-weight:600;line-height:1.15}
+  .storebtn img{width:38px;height:38px;border-radius:22.5%}
+  .storebtn small{display:block;font-weight:400;font-size:12px;color:#5A606A}
+  .appinfo{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin:0 0 30px}
+  .appinfo .big{width:88px;height:88px}
+  .appinfo h3{font-size:24px;margin:0}
+  .appinfo p{margin:2px 0 0;color:var(--muted);font-size:14.5px}
+  .gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 26px}
+  .gallery figure{margin:0}
+  .gallery .shot{border-radius:26px;border-width:6px;box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06)}
+  .gallery figcaption{margin-top:14px}
+  .gallery figcaption b{display:block;font-family:var(--f-display);font-size:19px;margin-bottom:4px}
+  .gallery figcaption span{color:var(--muted);font-size:14.5px}
+  .more{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:40px}
+  .more div{background:var(--panel);padding:18px}
+  .more h3{font-size:16px;margin-bottom:4px}
+  .more p{margin:0;color:var(--muted);font-size:14px}
 
   main section{max-width:1180px;margin:0 auto;padding:64px max(16px,env(safe-area-inset-left,0px)) 0}
   .kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
@@ -114,7 +129,11 @@
 
   @media (max-width:860px){
     .hero .in{grid-template-columns:1fr;padding-top:36px}
-    .phone{width:230px;transform:none}
+    .heroshots{height:440px;width:min(330px,100%)}
+    .heroshots .shot{width:190px}
+    .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;padding-bottom:12px;margin:0 -16px;padding-left:16px;padding-right:16px}
+    .gallery figure{flex:0 0 68%;scroll-snap-align:center}
+    .more{grid-template-columns:1fr 1fr}
     .stats{grid-template-columns:repeat(2,1fr)}
     .steps3,.feat{grid-template-columns:1fr}
     .kit,.planner{grid-template-columns:1fr}
@@ -125,7 +144,7 @@
 </head>
 <body>
 <header class="nav"><div class="in">
-  <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#F6B73C"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0A0B0D"/></svg>Liesenberg Home</a>
+  <a class="logo" href="#top"><img class="appicon" src="img/app-icon-256.png" width="32" height="32" alt="">Liesenberg Home</a>
   <nav class="links"><a href="#so-gehts">So geht's</a><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="#planer">Elektroplaner</a><a class="cta" href="#starter-kit">Starter-Kit</a></nav>
 </div></header>
 
@@ -137,18 +156,9 @@
     <div class="actions"><a class="b pri" href="#starter-kit">Starter-Kit ansehen · ca. 200 €</a><a class="b sec js-appstore" href="#app">App laden</a><a class="b sec" href="#so-gehts">So funktioniert's</a></div>
     <div class="stats"><div><b>0</b><span>Cloud-Konten</span></div><div><b>1</b><span>App für alles</span></div><div><b>6</b><span>Steckdosen smart im Kit</span></div><div><b>0 €</b><span>Abo</span></div></div>
   </div>
-  <div class="phone" aria-hidden="true">
-    <div class="t">Zuhause</div>
-    <div class="tile"><span><b>Solar</b> 6,4 kW</span><span class="on">Überschuss</span></div>
-    <div class="tile" style="flex-direction:column;align-items:flex-start;gap:6px"><b>Strom heute: 72 % vom Dach</b><div class="flow"><i></i></div></div>
-    <div class="two">
-      <div class="tile"><b>Wohnzimmer</b><span class="on">Licht 60 %</span></div>
-      <div class="tile"><b>Rollläden</b><span>alle offen</span></div>
-      <div class="tile"><b>Tor</b><span>zu</span></div>
-      <div class="tile"><b>Heizung</b><span>21,5 °C</span></div>
-    </div>
-    <div class="tile"><span>Waschmaschine</span><span class="on">startet bei Sonne</span></div>
-    <div class="tile"><span>Gute Nacht</span><span>Szene</span></div>
+  <div class="heroshots">
+    <img class="shot s1" src="img/shots/2-energie.jpg" width="600" height="1304" alt="Energie-Ansicht der App mit Solar, Akku und Netz">
+    <img class="shot s2" src="img/shots/1-home.jpg" width="600" height="1304" alt="Startseite der App mit Solar, Verbrauch, Akku und Szenen">
   </div>
 </div></div>
 
@@ -206,17 +216,32 @@
   <section id="app">
     <div class="kicker">Die App</div>
     <h2>Alles, was im Haus passiert. <em>Auf einen Blick.</em></h2>
-    <p class="intro">Kostenlos für iPhone und Apple Watch. <span id="appstore-line">Im App Store unter „Liesenberg Home“.</span></p>
-    <div class="feat">
-      <div><h3>Licht, Rollladen, Tor</h3><p>Schalten, dimmen, öffnen. Auch über Widgets, Siri und die Apple Watch.</p></div>
-      <div><h3>Solar-Assistent</h3><p>Startet Waschmaschine, Trockner und Spülmaschine, wenn der Strom vom Dach kommt.</p></div>
-      <div><h3>Energie live</h3><p>Solar, Netz, Batterie und Wallbox, Kosten pro Tag und Monat, 3D-Ansicht vom Haus.</p></div>
-      <div><h3>Szenen</h3><p>„Gute Nacht“, „Ankommen“ und ein Urlaubsmodus mit einem Tipp.</p></div>
-      <div><h3>Wetter und Hinweise</h3><p>Regenradar, Warnung bei Sturm und Frost, Erinnerung ans Gießen.</p></div>
-      <div><h3>Familie und Gäste</h3><p>Einladung per QR-Code, jeder mit eigenen Rechten.</p></div>
+    <div class="appinfo">
+      <img class="appicon big" src="img/app-icon-256.png" width="88" height="88" alt="App-Icon Liesenberg Home">
+      <div><h3>Liesenberg Home</h3><p>Dein Zuhause in einer App · kostenlos · iPhone (iOS 17) und Apple Watch · Deutsch, Englisch, Portugiesisch</p></div>
+      <a class="storebtn js-appstore" href="#app"><img src="img/app-icon-256.png" alt=""><span><small>Laden im</small>App Store</span></a>
     </div>
-    <p style="margin-top:18px;color:var(--muted)">Schon vorhanden? Der Hub bindet auch ein:</p>
-    <div class="sys"><span>Theben LUXORliving</span><span>KNX</span><span>Home Assistant</span><span>evcc (Solar, Wallbox)</span><span>Daikin Wärmepumpe</span><span>Bosch/Siemens Home Connect</span><span>Roborock</span><span>HomePod</span></div>
+    <div class="gallery">
+      <figure><img class="shot" loading="lazy" src="img/shots/1-home.jpg" width="600" height="1304" alt="Startseite"><figcaption><b>Zuhause</b><span>Solar, Verbrauch, Akku und Einspeisung oben. Darunter Auto laden, Klima, Geräte und deine Szenen mit einem Tipp.</span></figcaption></figure>
+      <figure><img class="shot" loading="lazy" src="img/shots/2-energie.jpg" width="600" height="1304" alt="Energie"><figcaption><b>Energie live</b><span>Dein Haus in 3D: was vom Dach kommt, was ins Netz geht und wie voll der Akku ist. Mit Prognose und Kosten pro Tag.</span></figcaption></figure>
+      <figure><img class="shot" loading="lazy" src="img/shots/3-raeume.jpg" width="600" height="1304" alt="Räume"><figcaption><b>Räume</b><span>Jede Etage, jeder Raum. Du siehst sofort, wo Licht an ist und wie warm es ist.</span></figcaption></figure>
+      <figure><img class="shot" loading="lazy" src="img/shots/4-wohnzimmer.jpg" width="600" height="1304" alt="Wohnzimmer"><figcaption><b>Licht, Heizung, Rollläden</b><span>Temperatur einstellen, Klima kühlen oder heizen, Fenster und Rollläden fahren, Lampen dimmen.</span></figcaption></figure>
+      <figure><img class="shot" loading="lazy" src="img/shots/5-musik.jpg" width="600" height="1304" alt="Musik"><figcaption><b>Musik im ganzen Haus</b><span>Apple Music und HomePods in jedem Raum, mit Lautstärke und Zeitplänen wie dem Morgenradio in der Küche.</span></figcaption></figure>
+      <figure><img class="shot" loading="lazy" src="img/shots/6-szene.jpg" width="600" height="1304" alt="Szene"><figcaption><b>Szenen und Zeitpläne</b><span>Gartenlicht bei Sonnenuntergang an, um 23 Uhr aus. Oder „Gute Nacht“: alles aus mit einem Tipp.</span></figcaption></figure>
+    </div>
+    <div class="more">
+      <div><h3>Solar-Assistent</h3><p>Waschmaschine, Trockner und Spülmaschine starten, wenn die Sonne scheint.</p></div>
+      <div><h3>Wallbox</h3><p>Auto mit Sonnenstrom laden, über evcc.</p></div>
+      <div><h3>Widgets und Siri</h3><p>Szenen vom Sperrbildschirm, per Sprache oder von der Apple Watch.</p></div>
+      <div><h3>Wetter</h3><p>Regenradar, Warnung bei Sturm und Frost, Erinnerung ans Gießen.</p></div>
+      <div><h3>Ankommen und Gehen</h3><p>Die App fragt, ob sie Licht und Heizung für dich schalten soll.</p></div>
+      <div><h3>Familie und Gäste</h3><p>Einladung per QR-Code, jeder mit eigenen Rechten. Face ID schützt den Zugang.</p></div>
+      <div><h3>Wartung</h3><p>Erinnert an Filterwechsel und Service, mit Wartungsbuch.</p></div>
+      <div><h3>Ohne Cloud</h3><p>Der Hub läuft bei dir zu Hause, Open Source. Die App sammelt keine Daten.</p></div>
+    </div>
+    <p style="margin-top:22px;color:var(--muted)">Schon vorhanden? Der Hub bindet auch ein:</p>
+    <div class="sys"><span>Theben LUXORliving</span><span>KNX</span><span>Home Assistant</span><span>evcc (Solar, Wallbox)</span><span>Daikin</span><span>Bosch/Siemens Home Connect</span><span>Roborock</span><span>Apple Music und HomePod</span></div>
+    <p style="margin-top:18px;color:var(--muted)">Ohne Hub ausprobieren: Die App hat einen Demo-Modus mit einem erfundenen Haus, so wie auf den Bildern.</p>
   </section>
 
   <section id="planer">
@@ -238,7 +263,7 @@
 </main>
 
 <footer><div class="in">
-  <div><a class="logo" href="#top" style="margin:0 0 8px"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#F6B73C"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z" fill="#0A0B0D"/></svg>Liesenberg Home</a>Smart Home, das bei dir zu Hause bleibt.</div>
+  <div><a class="logo" href="#top" style="margin:0 0 8px"><img class="appicon" src="img/app-icon-256.png" width="28" height="28" alt="">Liesenberg Home</a>Smart Home, das bei dir zu Hause bleibt.</div>
   <div><h4>Produkt</h4><a href="#starter-kit">Starter-Kit</a><a href="#app">App</a><a href="planer.html">Elektroplaner</a></div>
   <div><h4>Technik</h4><a href="https://github.com/michaelliesenberg/LiesenbergHome" target="_blank" rel="noopener">Hub-Software (GitHub)</a><a href="https://evcc.io" target="_blank" rel="noopener">evcc</a><a href="https://www.shelly.com/de" target="_blank" rel="noopener">Shelly</a></div>
   <div><h4>Rechtliches</h4><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></div>
@@ -248,7 +273,6 @@
   // Link zur App im App Store hier eintragen, sobald die App freigegeben ist
   var APP_STORE_URL = "https://apps.apple.com/de/app/liesenberg-home/id6820622767";
   if (APP_STORE_URL) {
-    document.getElementById("appstore-line").innerHTML = '<a href="' + APP_STORE_URL + '" target="_blank" rel="noopener">Im App Store laden</a>';
     document.querySelectorAll(".js-appstore").forEach(function (a) { a.href = APP_STORE_URL; a.target = "_blank"; a.rel = "noopener"; });
   }
 </script>

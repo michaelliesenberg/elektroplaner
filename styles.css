@@ -169,3 +169,9 @@ td .step{display:inline-flex}
 .brand small a{color:var(--accent)!important}
 select,input[type=text],input[type=number],input[type=date],input[type=email],textarea{background:var(--soft);border-color:var(--line);border-radius:10px}
 .ed-hint{border-left-color:var(--accent)}
+.ed-hintrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.ed-hintbtns{display:flex;gap:8px;align-items:center}
+.ed-hint{font-size:15px;padding:12px 14px}
+.ed-more{gap:6px}
+.ed-svg.tool-view{cursor:default}
+.roomlist .room{padding:10px 12px;gap:6px}

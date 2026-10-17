@@ -229,38 +229,33 @@ function roomCard(p,fi,ri){
   const extra=DEV.filter(d=>!d.core&&(n(r,d.k)||rv[d.k])),addable=DEV.filter(d=>!d.core&&!extra.includes(d));
   const sum=DEV.filter(d=>n(r,d.k)).map(d=>`<span class="chip"><b>${d.c}</b> ${n(r,d.k)}</span>`).join('')||'<span class="muted">keine Anschlüsse</span>';
   return `<article class="room${ED.sel===r.id?' sel':''}"><div class="roomhead"><input type="text" class="name" aria-label="Raumname" data-rname="${fi}:${ri}" value="${esc(r.name)}"><button class="btn small ghost" data-rmroom="${fi}:${ri}" aria-label="Raum löschen">✕</button></div>
-   <div class="roommeta"><select aria-label="Raumtyp" data-rtype="${fi}:${ri}">${Object.entries(RT).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.n}</option>`).join('')}</select>
-   <label>m² <input type="number" min="0" step="0.5" data-rarea="${fi}:${ri}" value="${+r.area||0}"></label>
-   <label>Fenster <input type="number" min="0" data-rwin="${fi}:${ri}" value="${+r.windows||0}"></label></div>
-   <div class="chips">${sum}</div>
-   <details><summary>Anschlüsse ändern</summary><div class="devs">${DEV.filter(d=>d.core).concat(extra).map(d=>devRow(r,d,rv,fi,ri)).join('')}</div>
+   <div class="roommeta"><select aria-label="Raumtyp" data-rtype="${fi}:${ri}">${Object.entries(RT).map(([k,v])=>`<option value="${k}"${k===r.type?' selected':''}>${v.n}</option>`).join('')}</select><span class="muted" style="font-size:13px">${+r.area?String(r.area).replace('.',',')+' m²':''}</span></div>
+   <details><summary>${DEV.reduce((a,d)=>a+n(r,d.k),0)} Anschlüsse · ändern</summary><div class="chips" style="margin:8px 0">${sum}</div>
+   <div class="roommeta" style="margin-bottom:6px"><label>m² <input type="number" min="0" step="0.5" data-rarea="${fi}:${ri}" value="${+r.area||0}"></label>
+   <label>Fenster <input type="number" min="0" data-rwin="${fi}:${ri}" value="${+r.windows||0}"></label></div><div class="devs">${DEV.filter(d=>d.core).concat(extra).map(d=>devRow(r,d,rv,fi,ri)).join('')}</div>
    <div class="roomfoot"><button class="btn small" data-recroom="${fi}:${ri}">Vorschlag neu setzen</button>
    ${addable.length?`<select aria-label="Anschluss hinzufügen" data-adddev="${fi}:${ri}"><option value="">+ Anschluss</option>${addable.map(d=>`<option value="${d.k}">${esc(d.l)}</option>`).join('')}</select>`:''}</div>
    ${geo?'<p class="muted" style="font-size:12.5px;margin:6px 0 0">Neue Anschlüsse erscheinen in der Raummitte, im Grundriss mit „Verschieben“ an die richtige Stelle ziehen.</p>':''}</details></article>`;
 }
 function stepPlan(t,p){
   const fi=S.floor,f=p.floors[fi];
-  let h=`<div class="floorbar"><div class="seg" role="group" aria-label="Etage">${p.floors.map((x,i)=>`<button data-floorsel="${i}" aria-pressed="${i===fi}">${esc(x.name)}</button>`).join('')}</div>
-    <button class="btn small" data-act="addfloor">+ Etage</button>
-    <span class="field" style="flex-direction:row;align-items:center;gap:8px;margin-left:auto"><span class="lbl">Ausstattung</span><span class="seg" role="group">${[1,2,3].map(a=>`<button data-aw="${a}" aria-pressed="${p.aw===a}" title="Ausstattungswert ${a} (DIN 18015-2 / RAL-RG 678)">${AWS[a]}</button>`).join('')}</span></span></div>
-   <div class="row" style="margin:10px 0"><label class="lbl" for="floorName">Etage</label><input type="text" id="floorName" data-floor="${fi}" value="${esc(f.name)}" style="width:10em">
-    ${!f.rooms.length&&p.floors.length>1?`<button class="btn small ghost" data-rmfloor="${fi}">Etage löschen</button>`:''}</div>`;
+  let h=`<div class="floorbar">${p.floors.length>1?`<div class="seg" role="group" aria-label="Etage">${p.floors.map((x,i)=>`<button data-floorsel="${i}" aria-pressed="${i===fi}">${esc(x.name)}</button>`).join('')}</div>`:''}
+    <button class="btn small ghost" data-act="addfloor">+ Etage</button>${!f.rooms.length&&!f.plan&&p.floors.length>1?`<button class="btn small ghost" data-rmfloor="${fi}">Etage löschen</button>`:''}</div>`;
   const cards=f.rooms.map((r,ri)=>roomCard(p,fi,ri)).join('');
   if(f.plan){
-    h+=`<div class="planlayout"><div>${editorHTML(p,fi)}</div><aside class="side">${pendingHTML(p,fi)}
-      ${f.rooms.length?`<h3 class="sidehead">Räume auf dieser Etage</h3>`:''}<div class="roomlist">${cards}</div></aside></div>`;
+    h+=`<div class="planlayout"><div>${editorHTML(p,fi)}</div><aside class="side">${pendingHTML(p,fi)}<div class="roomlist">${cards}</div></aside></div>`;
   }else{
     h+=`<label class="drop"><input type="file" id="planFile" accept="image/*,application/pdf" hidden>
-        <b>Grundriss hochladen</b><span>Foto, Bild oder PDF vom Architekten. Danach tippst du in die Räume, das Tool schlägt Steckdosen, Licht und Schalter vor und berechnet die Kabellängen.</span><span class="btn primary">Datei wählen</span></label>
-      <p class="muted" style="text-align:center;margin:14px 0">oder ohne Grundriss: Räume als Liste anlegen <button class="btn small" data-addroom="${fi}">+ Raum</button></p>
-      <div class="rooms">${cards}</div>`;
+        <b>Grundriss hochladen</b><span>Bild oder PDF${p.floors.length>1?` für ${esc(f.name)}`:''}. Danach nur noch den Maßstab antippen.</span><span class="btn primary">Datei wählen</span></label>
+      <p class="muted" style="text-align:center;margin:14px 0;font-size:14px">Kein Grundriss? <button class="btn small ghost" data-addroom="${fi}">Räume von Hand anlegen</button></p>
+      <div class="rooms">${cards}</div>${f.rooms.length?next('art','Weiter'):''}`;
   }
-  h+=next('art','Weiter: konventionell oder smart');
   t.innerHTML=h;
 }
 function stepArt(t,p){
   const konv=isKonv(p);
-  let h=`<div class="choice">
+  let h=`<div class="row" style="margin-bottom:14px"><span class="lbl">Ausstattung</span><span class="seg" role="group">${[1,2,3].map(a=>`<button data-aw="${a}" aria-pressed="${p.aw===a}" title="Ausstattungswert ${a} (DIN 18015-2 / RAL-RG 678)">${AWS[a]}</button>`).join('')}</span></div>
+  <div class="choice">
    <button class="opt${konv?' on':''}" data-mode="konv"><b>Konventionell</b><span>Normale Schalter und Steckdosen. Smart wird es mit Zwischensteckern oder kleinen Shelly-Modulen hinter dem Schalter, auch später.</span></button>
    <button class="opt${!konv?' on':''}" data-mode="smart"><b>Smart</b><span>Alles läuft über eine Steuerung im Verteiler. Licht, Rollläden und Heizung sind von Anfang an in der App.</span></button></div>`;
   if(konv){
