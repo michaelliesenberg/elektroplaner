@@ -122,6 +122,40 @@ function guessTypes(list){
     return 'essen';
   });
 }
+/* ---------- Raumnamen lesen: kostenlose Texterkennung (Tesseract) direkt im Browser, nichts wird hochgeladen */
+const LABELS=[[/wohn/,'wohnen'],[/ess(en|zi)|^ess$/,'essen'],[/k[üu]e?ch|koch/,'kueche'],[/schlaf|eltern/,'schlafen'],[/kind/,'kind'],
+  [/arbeit|b[üu]e?ro|office|studio/,'arbeit'],[/^wc$|g[äa]e?ste|toilet/,'wc'],[/bad|dusch/,'bad'],[/flur|diele|gang|eingang|windfang|treppe/,'flur'],
+  [/hwr|hauswirt|wasch|technik|heiz/,'hwr'],[/abstell|keller|vorrat|speis|lager/,'keller'],[/garage|carport/,'garage'],[/terrass|balkon|loggia|garten/,'aussen'],[/zimmer|gast/,'sonst']];
+function labelType(t){t=t.toLowerCase();for(const [re,k] of LABELS) if(re.test(t)) return k;return null}
+let ocrWorker=null;
+function loadScript(src){return new Promise((ok,bad)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>bad(new Error('Texterkennung ließ sich nicht laden'));document.head.appendChild(e)})}
+async function readLabels(f){
+  if(f.plan.labels) return f.plan.labels;
+  const base=new URL('vendor/tesseract/',location.href).href;
+  if(!window.Tesseract) await loadScript(base+'tesseract.min.js');
+  if(!ocrWorker) ocrWorker=await Tesseract.createWorker('deu',1,{workerPath:base+'worker.min.js',corePath:base,langPath:base+'lang'});
+  const {data}=await ocrWorker.recognize(f.plan.img);
+  const out=[];
+  (data.words||[]).forEach(w=>{const t=(w.text||'').replace(/[^A-Za-zÄÖÜäöüß\-.]/g,'');if(t.length<2||w.confidence<55)return;
+    if(!labelType(t))return;const b=w.bbox;out.push({t,x:Math.round((b.x0+b.x1)/2),y:Math.round((b.y0+b.y1)/2)})});
+  f.plan.labels=out;return out;
+}
+function labelIn(f,R){const l=(f.plan.labels||[]).filter(q=>q.x>=R.x&&q.x<=R.x+R.w&&q.y>=R.y&&q.y<=R.y+R.h);return l[0]||null}
+function nameFromLabel(t){t=t.replace(/[-.]+$/,'');return t.length<=3?t.toUpperCase():t[0].toUpperCase()+t.slice(1).toLowerCase()}
+async function applyLabels(p,fi,onlyAuto){
+  const f=p.floors[fi];let n_=0;
+  try{await readLabels(f)}catch(e){toast('Raumnamen konnten nicht gelesen werden: '+errText(e));return 0}
+  f.rooms.forEach(r=>{if(!r.rect||(onlyAuto&&!r.auto))return;const l=labelIn(f,r.rect);if(!l)return;
+    const t=labelType(l.t);if(!t)return;r.type=t;r.name=nameFromLabel(l.t);r.windows=guessWindows(t,r.area);delete r.auto;
+    r.dev=rec(r,p.aw);autoPlace(f,r);syncDev(r);if(isKonv(p))presetRoom(p.preset,r);n_++});
+  return n_;
+}
+async function runLabels(){
+  ED.busy=true;document.body.classList.add('busy');toast('Lese Raumnamen aus dem Grundriss …');
+  try{const p=plan();delete p.floors[S.floor].plan.labels;const k=await applyLabels(p,S.floor,false);changed();
+    toast(k?`${k} Raumnamen gelesen`:'Keine Raumnamen im Grundriss gefunden. Bitte die Raumtypen rechts wählen.')}
+  finally{ED.busy=false;document.body.classList.remove('busy')}
+}
 async function autoRooms(p,fi){
   const f=p.floors[fi];if(!f.plan||!f.plan.scale)return 0;
   ED.busy=true;document.body.classList.add('busy');
@@ -133,8 +167,21 @@ async function autoRooms(p,fi){
   }finally{ED.busy=false;document.body.classList.remove('busy')}
 }
 async function runAutoRooms(){
-  const n_=await autoRooms(plan(),S.floor);ED.tool='room';changed();
-  toast(n_?`${n_} Räume erkannt. Bitte rechts die Raumtypen prüfen.`:'Keine geschlossenen Räume gefunden. Tippe in die Räume oder ziehe sie auf.');
+  const p=plan(),fi=S.floor;let n_=await autoRooms(p,fi);ED.tool='room';changed();
+  if(!n_){toast('Keine geschlossenen Räume gefunden. Tippe in die Räume oder ziehe sie auf.');return}
+  toast(`${n_} Räume erkannt, lese Raumnamen …`);
+  ED.busy=true;document.body.classList.add('busy');
+  try{let k=await applyLabels(p,fi,true);
+    // Beschriftete Räume, die die Flächenerkennung übersehen hat: wie ein Antippen an der Beschriftung
+    const f=p.floors[fi];
+    for(const l of (f.plan.labels||[])){
+      if(f.rooms.some(r=>r.rect&&l.x>=r.rect.x&&l.x<=r.rect.x+r.rect.w&&l.y>=r.rect.y&&l.y<=r.rect.y+r.rect.h))continue;
+      const res=await detectRoom(f,l.x,l.y);if(!res.rect)continue;const t=labelType(l.t),area=rectArea(f,res.rect);if(!t||area<1)continue;
+      const r={id:uid(),name:uniqueName(f,nameFromLabel(l.t)),type:t,area,windows:guessWindows(t,area),rect:res.rect,dev:{}};
+      r.dev=rec(r,p.aw);autoPlace(f,r);syncDev(r);if(isKonv(p))presetRoom(p.preset,r);f.rooms.push(r);k++;n_++;
+    }
+    changed();toast(k===n_?`${n_} Räume erkannt und benannt.`:`${n_} Räume erkannt, ${k} davon benannt. Bitte rechts die übrigen Raumtypen prüfen.`)}
+  finally{ED.busy=false;document.body.classList.remove('busy')}
 }
 
 /* ---------- Anschlüsse vorschlagen */
@@ -218,7 +265,7 @@ function editorHTML(p,fi){
    <div class="ed-wrap"><svg id="plansvg" class="ed-svg tool-${ED.tool}" viewBox="0 0 ${P.w} ${P.h}" style="width:${ED.zoom*100}%" role="img" aria-label="Grundriss ${esc(f.name)}">
      <image href="${P.img}" x="0" y="0" width="${P.w}" height="${P.h}"/>${rooms}${pend}${board}${items}${sp}<rect id="dragrect" class="ed-pend" x="0" y="0" width="0" height="0" visibility="hidden"/></svg></div>
    <div class="row ed-foot"><span class="muted" style="font-size:12.5px">Maßstab ${P.scale?`1 m = ${Math.round(P.scale)} px`:'fehlt'} · ${P.board?'Verteiler gesetzt':'Verteiler fehlt'}</span>
-     <button class="btn small" data-ed="autorooms">Räume automatisch erkennen</button><button class="btn small ghost" data-ed="rescale">Maßstab neu</button><button class="btn small ghost" data-ed="reboard">Verteiler neu</button><button class="btn small ghost danger" data-ed="rmplan">Grundriss entfernen</button></div>
+     <button class="btn small" data-ed="autorooms">Räume automatisch erkennen</button><button class="btn small" data-ed="labels">Raumnamen lesen</button><button class="btn small ghost" data-ed="rescale">Maßstab neu</button><button class="btn small ghost" data-ed="reboard">Verteiler neu</button><button class="btn small ghost danger" data-ed="rmplan">Grundriss entfernen</button></div>
   </div>`;
 }
 function pendingHTML(p,fi){
@@ -236,8 +283,8 @@ function svgPt(svg,e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.client
 function curFloor(){return plan().floors[S.floor]}
 function uniqueName(f,base){const names=new Set(plan().floors.flatMap(x=>x.rooms.map(r=>r.name)));if(!names.has(base))return base;let i=2;while(names.has(base+' '+i))i++;return base+' '+i}
 function startPending(fi,rect){
-  const f=plan().floors[fi],area=rectArea(f,rect),type=area&&area<4?'wc':area&&area<8?'flur':'wohnen';
-  ED.pending={fi,rect,type,name:uniqueName(f,RT[type].n),windows:guessWindows(type,area)};render();
+  const f=plan().floors[fi],area=rectArea(f,rect),l=labelIn(f,rect),lt=l&&labelType(l.t),type=lt||(area&&area<4?'wc':area&&area<8?'flur':'wohnen');
+  ED.pending={fi,rect,type,name:lt?uniqueName(f,nameFromLabel(l.t)):uniqueName(f,RT[type].n),windows:guessWindows(type,area)};render();
   setTimeout(()=>{const e=document.getElementById('pendForm');if(e)e.scrollIntoView({block:'nearest',behavior:'smooth'})},50);
 }
 document.addEventListener('pointerdown',e=>{
@@ -280,6 +327,7 @@ document.addEventListener('click',e=>{
     case 'rmplan':if(confirm('Grundriss dieser Etage entfernen? Die Räume bleiben als Liste erhalten.')){delete f.plan;f.rooms.forEach(r=>{delete r.rect;delete r.items});changed()}break;
     case 'pendno':ED.pending=null;render();break;
     case 'autorooms':runAutoRooms();break;
+    case 'labels':runLabels();break;
   }
 });
 document.addEventListener('change',e=>{
