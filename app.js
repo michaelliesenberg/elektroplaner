@@ -301,7 +301,7 @@ function resetRoom(p,f,r){r.dev=rec(r,p.aw);if(r.items&&f.plan){autoPlace(f,r);s
 async function uploadPlan(file){
   const fi=S.floor;setSync('Grundriss wird geladen …');document.body.classList.add('busy');
   try{const pl=await loadPlanFile(file),p=plan(),f=p.floors[fi];f.plan=pl;f.rooms.forEach(r=>{delete r.rect;delete r.items});
-    ED.tool='scale';ED.scalePts=[];ED.askScale=false;ED.zoom=1;changed();}
+    ED.tool='scale';ED.scalePts=[];ED.pinsFor=null;ED.zoom=1;changed();}
   catch(e){toast('Grundriss ließ sich nicht laden: '+errText(e));setSync('')}
   finally{document.body.classList.remove('busy')}
 }
@@ -329,7 +329,7 @@ document.addEventListener('click',async e=>{
     if(r.items&&f.plan){if(d.inc)addItem(f,r,k);else removeItem(r,k)}else{r.dev=r.dev||{};r.dev[k]=Math.max(0,n(r,k)+(d.inc?1:-1))}
     if(isKonv(p))presetRoom(p.preset,r);changed();return}
   if(d.recroom){const {f,r}=at(d.recroom+':x');resetRoom(p,f,r);changed();return}
-  if(d.floorsel!=null){S.floor=+d.floorsel;ED.pending=null;ED.scalePts=[];ED.askScale=false;ED.zoom=1;render();return}
+  if(d.floorsel!=null){S.floor=+d.floorsel;ED.pending=null;ED.scalePts=[];ED.pinsFor=null;ED.zoom=1;render();return}
   if(d.mode){p.mode=d.mode;if(d.mode==='konv'&&!p.preset)applyPreset(p,'plug');changed();return}
   if(d.preset){applyPreset(p,d.preset);changed();return}
   if(d.rinc||d.rdec){const {r,k}=at(d.rinc||d.rdec);r.retro=r.retro||{};r.retro[k]=Math.max(0,retro(r,k)+(d.rinc?1:-1));changed();return}

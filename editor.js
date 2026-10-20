@@ -1,7 +1,7 @@
 "use strict";
 /* Grundriss: hochladen (Bild oder PDF), Maßstab, Verteiler, Räume antippen (Wände werden erkannt),
    Anschlüsse automatisch vorschlagen und verschieben. Koordinaten in Pixeln des gespeicherten Bildes. */
-const ED={tool:'room',scalePts:[],askScale:false,pending:null,addK:'steckdose',zoom:1,drag:null,busy:false};
+const ED={tool:'room',scalePts:[],scaleM:'',pinsFor:null,pending:null,addK:'steckdose',zoom:1,drag:null,busy:false};
 const MAXPX=1600;
 
 /* ---------- Laden */
@@ -246,8 +246,25 @@ function setBoardAuto(f){
   else{const R=f.rooms.filter(x=>x.rect);if(R.length){const y1=Math.max(...R.map(x=>x.rect.y+x.rect.h)),x0=Math.min(...R.map(x=>x.rect.x));f.plan.board={x:x0+symR(f)*2,y:y1-symR(f)*2}}else f.plan.board={x:Math.round(f.plan.w/2),y:Math.round(f.plan.h/2)}}
   if(!plan().floors.some(x=>x.plan&&x.plan.main)) f.plan.main=true;
 }
+// Zwei Pins für den Maßstab: Startposition an den Außenkanten der Zeichnung (unten links und rechts)
+function ensurePins(f){
+  const key=f.id+':'+f.plan.img.length;if(ED.pinsFor===key&&ED.scalePts.length===2)return;
+  ED.pinsFor=key;const w=f.plan.w,h=f.plan.h;ED.scalePts=[{x:Math.round(w*.15),y:Math.round(h*.85)},{x:Math.round(w*.85),y:Math.round(h*.85)}];
+  const im=new Image();im.onload=()=>{if(ED.pinsFor!==key||ED.drag)return;
+    const c=document.createElement('canvas');c.width=w;c.height=h;const cx=c.getContext('2d',{willReadFrequently:true});cx.drawImage(im,0,0,w,h);
+    const px=cx.getImageData(0,0,w,h).data,col=new Uint32Array(w),row=new Uint32Array(h);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4;if(.3*px[i]+.59*px[i+1]+.11*px[i+2]<150){col[x]++;row[y]++}}
+    const tc=h*.15,tr=w*.15;let x0=col.findIndex(v=>v>tc),x1=w-1-[...col].reverse().findIndex(v=>v>tc),y1=h-1-[...row].reverse().findIndex(v=>v>tr);
+    if(x0<0||x1<=x0+w*.2||y1<0)return;
+    ED.scalePts=[{x:x0,y:y1},{x:x1,y:y1}];if(document.getElementById('scaleLine')){movePinDom(0);movePinDom(1)}};
+  im.src=f.plan.img;
+}
+function movePinDom(i){
+  const q=ED.scalePts[i],g=document.querySelector(`[data-pin="${i}"]`),l=document.getElementById('scaleLine');
+  if(g)g.setAttribute('transform',`translate(${q.x} ${q.y})`);if(l){l.setAttribute('x'+(i+1),q.x);l.setAttribute('y'+(i+1),q.y)}
+}
 function hintText(f){
-  if(!f.plan.scale) return ED.askScale?'<b>Wie lang ist diese Strecke?</b>':`<b>Maßstab:</b> Tippe auf zwei Punkte, deren Abstand du kennst, zum Beispiel die Enden einer Maßkette${ED.scalePts.length?'. Noch ein Punkt.':'.'}`;
+  if(!f.plan.scale) return '<b>Maßstab:</b> Ziehe die zwei Pins an die Enden einer Strecke, deren Länge du kennst. Vorgeschlagen ist die Außenwand. Dann die Länge eingeben.';
   if(ED.edit){
     if(ED.tool==='room') return 'Tippe in einen fehlenden Raum oder ziehe ihn als Rechteck auf.';
     if(ED.tool==='move') return 'Ziehe Symbole an die richtige Stelle.';
@@ -266,13 +283,14 @@ function editorHTML(p,fi){
     <text x="${r.rect.x+s*.6}" y="${r.rect.y+s*1.6}" font-size="${s*1.15}" class="ed-rname">${esc(r.name)}</text></g>`).join('');
   const items=f.rooms.map((r,ri)=>(r.items||[]).map((it,ii)=>`<g class="ed-it k-${it.k}" data-item="${ri}:${ii}" transform="translate(${it.x} ${it.y})"><circle r="${s}"/><text font-size="${s*(DEVK[it.k].c.length>2?.72:.95)}" dy="${s*.34}">${DEVK[it.k].c}</text></g>`).join('')).join('');
   const board=P.board?`<g class="ed-board" transform="translate(${P.board.x} ${P.board.y})"><rect x="${-s*1.3}" y="${-s*1.3}" width="${s*2.6}" height="${s*2.6}" rx="${s/4}"/><text font-size="${s}" dy="${s*.35}">V</text></g>`:'';
-  const sp=ED.scalePts.map(q=>`<circle class="ed-sp" cx="${q.x}" cy="${q.y}" r="${s*.5}"/>`).join('')+(ED.scalePts.length===2?`<line class="ed-sl" x1="${ED.scalePts[0].x}" y1="${ED.scalePts[0].y}" x2="${ED.scalePts[1].x}" y2="${ED.scalePts[1].y}"/>`:'');
+  if(!ready) ensurePins(f);
+  const sp=!ready&&ED.scalePts.length===2?`<line id="scaleLine" class="ed-sl" x1="${ED.scalePts[0].x}" y1="${ED.scalePts[0].y}" x2="${ED.scalePts[1].x}" y2="${ED.scalePts[1].y}"/>`+ED.scalePts.map((q,i)=>`<g class="ed-pin" data-pin="${i}" transform="translate(${q.x} ${q.y})"><circle class="hit" r="${s*2.2}"/><circle class="ring" r="${s*1.5}"/><path class="cross" d="M${-s*2.1} 0H${s*2.1}M0 ${-s*2.1}V${s*2.1}"/><text y="${-s*2.2}" font-size="${s*1.4}">${i?'B':'A'}</text></g>`).join(''):'';
   const pend=ED.pending&&ED.pending.fi===fi?`<rect class="ed-pend" x="${ED.pending.rect.x}" y="${ED.pending.rect.y}" width="${ED.pending.rect.w}" height="${ED.pending.rect.h}"/>`:'';
   return `<div class="ed">
    <div class="ed-hint"><div class="ed-hintrow"><span>${hintText(f)}</span>
      ${ready&&!ED.edit?`<span class="ed-hintbtns"><button class="btn small ghost" data-ed="edit">Anpassen</button><button class="btn primary" data-tab="art">Weiter →</button></span>`:''}
      ${ready&&ED.edit?`<span class="ed-hintbtns"><button class="btn primary small" data-ed="editdone">Fertig</button></span>`:''}</div>
-    ${ED.askScale?`<form id="scaleForm" class="row" style="margin-top:8px"><input type="number" id="scaleM" min="0.1" step="0.01" placeholder="z. B. 10,5" required style="width:7em" autofocus> <span>Meter</span><button class="btn primary small" type="submit">OK</button><button class="btn small ghost" type="button" data-ed="scalereset">Neu tippen</button></form>`:''}</div>
+    ${!ready?`<form id="scaleForm" class="row" style="margin-top:8px"><span>Von A bis B:</span><input type="text" inputmode="decimal" id="scaleM" placeholder="z. B. 10,5" required style="width:7em" value="${esc(ED.scaleM||'')}"> <span>Meter</span><button class="btn primary small" type="submit">OK</button><button class="btn small ghost" type="button" data-ed="scalereset">Pins zurücksetzen</button></form>`:''}</div>
    ${ready&&ED.edit?`<div class="ed-tools"><div class="seg" role="group">${tools.map(([k,l])=>`<button data-tool="${k}" aria-pressed="${ED.tool===k}">${l}</button>`).join('')}</div>
      ${ED.tool==='add'?`<select id="edAddK" aria-label="Was hinzufügen">${DEV.map(d=>`<option value="${d.k}"${d.k===ED.addK?' selected':''}>${esc(d.l)}</option>`).join('')}</select>`:''}
      <span class="ed-zoom"><button class="btn small" data-ed="zoomout" aria-label="Verkleinern">−</button><button class="btn small" data-ed="zoomin" aria-label="Vergrößern">+</button></span></div>
@@ -304,7 +322,11 @@ document.addEventListener('pointerdown',e=>{
   const svg=e.target.closest&&e.target.closest('#plansvg'); if(!svg||ED.busy) return;
   const f=curFloor(),P=f.plan,pt=svgPt(svg,e),tool=ED.tool;
   if(P.scale&&!ED.edit) return;
-  if(tool==='scale'){if(ED.askScale)return;ED.scalePts.push(pt);if(ED.scalePts.length===2)ED.askScale=true;render();setTimeout(()=>{const i=document.getElementById('scaleM');if(i)i.focus()},30);return}
+  if(tool==='scale'){if(ED.scalePts.length<2)return;e.preventDefault();svg.setPointerCapture(e.pointerId);
+    const pin=e.target.closest('[data-pin]');let i=pin?+pin.dataset.pin:null;
+    // Tipp daneben: nächsten Pin dorthin holen
+    if(i==null){const [a,b]=ED.scalePts;i=Math.hypot(a.x-pt.x,a.y-pt.y)<=Math.hypot(b.x-pt.x,b.y-pt.y)?0:1;ED.scalePts[i]=pt;movePinDom(i)}
+    ED.drag={type:'pin',i};return}
   if(tool==='board'){P.board=pt;if(!plan().floors.some(x=>x.plan&&x.plan.main))P.main=true;ED.tool='move';changed();return}
   const itEl=e.target.closest('[data-item]');
   if(tool==='erase'){if(itEl){const [ri,ii]=itEl.dataset.item.split(':').map(Number);const r=f.rooms[ri];r.items.splice(ii,1);syncDev(r);changed()}return}
@@ -314,12 +336,14 @@ document.addEventListener('pointerdown',e=>{
 });
 document.addEventListener('pointermove',e=>{
   const d=ED.drag;if(!d)return;const svg=document.getElementById('plansvg');if(!svg)return;const pt=svgPt(svg,e);
+  if(d.type==='pin'){ED.scalePts[d.i]=pt;movePinDom(d.i);return}
   if(d.type==='item'){d.pt=pt;d.el.setAttribute('transform',`translate(${pt.x} ${pt.y})`)}
   else{d.cur=pt;const r=document.getElementById('dragrect'),x=Math.min(d.start.x,pt.x),y=Math.min(d.start.y,pt.y);
     r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',Math.abs(pt.x-d.start.x));r.setAttribute('height',Math.abs(pt.y-d.start.y));r.setAttribute('visibility','visible')}
 });
 document.addEventListener('pointerup',async e=>{
   const d=ED.drag;if(!d)return;ED.drag=null;const f=curFloor();
+  if(d.type==='pin')return;
   if(d.type==='item'){const it=f.rooms[d.ri].items[d.ii];it.x=d.pt.x;it.y=d.pt.y;changed();return}
   const s=symR(f),w=Math.abs(d.cur.x-d.start.x),h=Math.abs(d.cur.y-d.start.y);
   if(w>s*2&&h>s*2){startPending(S.floor,{x:Math.min(d.start.x,d.cur.x),y:Math.min(d.start.y,d.cur.y),w,h});return}
@@ -335,8 +359,8 @@ document.addEventListener('click',e=>{
   switch(d.ed){
     case 'zoomin':ED.zoom=Math.min(4,ED.zoom*1.5);render();break;
     case 'zoomout':ED.zoom=Math.max(1,ED.zoom/1.5);render();break;
-    case 'scalereset':ED.scalePts=[];ED.askScale=false;render();break;
-    case 'rescale':f.plan.scale=null;ED.scalePts=[];ED.askScale=false;ED.tool='scale';ED.edit=false;changed();break;
+    case 'scalereset':ED.scalePts=[];ED.pinsFor=null;render();break;
+    case 'rescale':f.plan.scale=null;ED.scalePts=[];ED.pinsFor=null;ED.tool='scale';ED.edit=false;changed();break;
     case 'edit':ED.edit=true;ED.tool='move';render();break;
     case 'editdone':ED.edit=false;ED.pending=null;render();break;
     case 'rmplan':if(confirm('Grundriss dieser Etage entfernen? Die Räume bleiben als Liste erhalten.')){delete f.plan;f.rooms.forEach(r=>{delete r.rect;delete r.items});changed()}break;
@@ -354,7 +378,8 @@ document.addEventListener('change',e=>{
 document.addEventListener('submit',e=>{
   if(e.target.id==='scaleForm'){e.preventDefault();e.stopImmediatePropagation();
     const m=parseFloat(String(document.getElementById('scaleM').value).replace(',','.'));if(!(m>0))return;
-    const [a,b]=ED.scalePts,f=curFloor();f.plan.scale=Math.hypot(a.x-b.x,a.y-b.y)/m;ED.scalePts=[];ED.askScale=false;
+    const [a,b]=ED.scalePts,f=curFloor(),d=Math.hypot(a.x-b.x,a.y-b.y);if(d<5){toast('Die Pins liegen aufeinander. Ziehe sie an die Enden der Strecke.');return}
+    f.plan.scale=d/m;ED.scalePts=[];ED.pinsFor=null;ED.scaleM='';
     f.rooms.forEach(r=>{if(r.rect)r.area=rectArea(f,r.rect)});ED.tool='room';ED.edit=false;if(!f.rooms.some(r=>r.rect))runAutoRooms();else changed();return}
   if(e.target.id==='pendForm'){e.preventDefault();e.stopImmediatePropagation();
     const pd=ED.pending,p=plan(),f=p.floors[pd.fi];
@@ -387,3 +412,4 @@ function withExampleFloor(p){
   }catch(e){}
   return p;
 }
+document.addEventListener('input',e=>{if(e.target.id==='scaleM')ED.scaleM=e.target.value});
